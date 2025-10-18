@@ -1,0 +1,11 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AuthRoot from '../../components/auth/AuthRoot';
+---
+
+<Layout 
+  title="Iniciar Sesión - Marketing Pro"
+  description="Accede a tu cuenta de Marketing Pro. Panel de administración para gestionar contenido, usuarios y configuración del blog."
+>
+  <AuthRoot client:only="react" />
+</Layout>

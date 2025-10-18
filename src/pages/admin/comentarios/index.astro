@@ -1,0 +1,11 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminCommentsRoot from '../../../components/admin/AdminCommentsRoot';
+---
+
+<Layout 
+  title="Moderación de Comentarios - Admin Panel"
+  description="Modera comentarios del blog: aprobar, rechazar, marcar spam y gestionar la comunidad."
+>
+  <AdminCommentsRoot client:only="react" />
+</Layout>

@@ -1,0 +1,11 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminUsersRoot from '../../../components/admin/AdminUsersRoot';
+---
+
+<Layout 
+  title="Gestión de Usuarios - Admin Panel"
+  description="Administra usuarios del sistema: roles, permisos, estados y configuración de cuentas."
+>
+  <AdminUsersRoot client:only="react" />
+</Layout>

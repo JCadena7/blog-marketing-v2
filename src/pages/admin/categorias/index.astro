@@ -1,0 +1,11 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminCategoriesRoot from '../../../components/admin/AdminCategoriesRoot';
+---
+
+<Layout 
+  title="Gestión de Categorías - Admin Panel"
+  description="Administra categorías del blog: crear, editar, organizar y gestionar colores e iconos personalizados."
+>
+  <AdminCategoriesRoot client:only="react" />
+</Layout>

@@ -1,0 +1,22 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+import UserProfileViewRoot from '../../../../components/profile/UserProfileViewRoot';
+import { getAllUsers } from '../../../../services/usersService';
+
+export async function getStaticPaths() {
+  const users = await getAllUsers();
+  return users.map((user) => ({
+    params: { id: String(user.id) },
+    props: { user }
+  }));
+}
+
+const { user } = Astro.props;
+---
+
+<Layout 
+  title={`Perfil de ${user.firstName} ${user.lastName} - Admin Panel`}
+  description={`Información del perfil de ${user.firstName} ${user.lastName}: estadísticas, actividad y gestión administrativa.`}
+>
+  <UserProfileViewRoot client:only="react" />
+</Layout>

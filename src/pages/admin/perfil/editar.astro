@@ -1,0 +1,11 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import EditProfileRoot from '../../../components/profile/EditProfileRoot';
+---
+
+<Layout 
+  title="Editar Perfil - Admin Panel"
+  description="Actualiza tu información personal, configuración de seguridad, preferencias y enlaces sociales."
+>
+  <EditProfileRoot client:only="react" />
+</Layout>

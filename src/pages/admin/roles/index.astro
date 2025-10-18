@@ -1,0 +1,11 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminRolesRoot from '../../../components/admin/AdminRolesRoot';
+---
+
+<Layout 
+  title="Roles y Permisos - Admin Panel"
+  description="Gestiona roles del sistema y permisos asociados. Solo accesible para el rol Creador."
+>
+  <AdminRolesRoot client:only="react" />
+</Layout>

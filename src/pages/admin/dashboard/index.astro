@@ -1,0 +1,11 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminDashboardPage from '../../../components/admin/AdminDashboardPage';
+---
+
+<Layout 
+  title="Dashboard Administrativo - Marketing Pro"
+  description="Panel de control administrativo para gestionar contenido, usuarios y configuraci n del blog de marketing digital."
+>
+  <AdminDashboardPage client:only="react" />
+</Layout>

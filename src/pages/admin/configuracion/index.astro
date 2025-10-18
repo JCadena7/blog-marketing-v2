@@ -1,0 +1,11 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminConfigRoot from '../../../components/admin/AdminConfigRoot';
+---
+
+<Layout 
+  title="Configuración del Sistema - Admin Panel"
+  description="Configuración avanzada del sistema: seguridad, base de datos, SEO, integraciones y más."
+>
+  <AdminConfigRoot client:only="react" />
+</Layout>

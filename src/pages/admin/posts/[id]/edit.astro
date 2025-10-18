@@ -1,0 +1,13 @@
+---
+import Layout from '../../../../layouts/Layout.astro';
+import AdminPostEditRoot from '../../../../components/admin/AdminPostEditRoot';
+import { getAllPosts } from '../../../../services/postsService';
+
+export async function getStaticPaths() {
+  const posts = await getAllPosts();
+  return posts.map((p) => ({ params: { id: String(p.id) } }));
+}
+---
+<Layout title="Editar Post - Admin Panel" description="Editor avanzado...">
+  <AdminPostEditRoot client:only="react" />
+</Layout>

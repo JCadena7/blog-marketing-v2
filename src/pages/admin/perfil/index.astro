@@ -1,0 +1,11 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import UserProfileRoot from '../../../components/profile/UserProfileRoot';
+---
+
+<Layout 
+  title="Mi Perfil - Admin Panel"
+  description="Gestiona tu perfil personal: información, configuración, estadísticas y preferencias de cuenta."
+>
+  <UserProfileRoot client:only="react" />
+</Layout>

@@ -1,0 +1,119 @@
+/* Fuentes (deben ir antes que cualquier otra regla) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
+@import "tailwindcss";
+
+/* Use class-based dark mode across the app */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Tema Tailwind v4 (tokens) */
+@theme {
+  /* Colores primarios */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #0066CC;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+
+  /* Colores secundarios */
+  --color-secondary-50: #fef2f2;
+  --color-secondary-100: #fee2e2;
+  --color-secondary-200: #fecaca;
+  --color-secondary-300: #fca5a5;
+  --color-secondary-400: #f87171;
+  --color-secondary-500: #FF6B35;
+  --color-secondary-600: #dc2626;
+  --color-secondary-700: #b91c1c;
+  --color-secondary-800: #991b1b;
+  --color-secondary-900: #7f1d1d;
+
+  /* Grises */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  /* Tipografías */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Poppins", system-ui, sans-serif;
+
+  /* Animaciones (se definen los keyframes abajo) */
+  --animate-fade-in: fade-in 0.5s ease-in-out;
+  --animate-slide-up: slide-up 0.5s ease-out;
+  --animate-slide-in-right: slide-in-right 0.3s ease-out;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Keyframes usados por las animaciones personalizadas */
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slide-up {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); }
+}
+/* Reglas base y utilidades personalizadas */
+@layer base {
+  html { scroll-behavior: smooth; }
+
+  /* Estado de carga */
+  body:not(.loaded) { overflow: hidden; }
+
+  /* Auth page specific styles */
+  .auth-input:focus {
+    animation: pulse-glow 2s infinite;
+  }
+  
+  .auth-error {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  .auth-success {
+    animation: bounce-in 0.6s ease-out;
+  }
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background-color: var(--color-gray-100); }
+  .dark ::-webkit-scrollbar-track { background-color: var(--color-gray-800); }
+  ::-webkit-scrollbar-thumb { background-color: var(--color-gray-300); border-radius: 9999px; }
+  .dark ::-webkit-scrollbar-thumb { background-color: var(--color-gray-600); }
+  ::-webkit-scrollbar-thumb:hover { background-color: var(--color-gray-400); }
+  .dark ::-webkit-scrollbar-thumb:hover { background-color: var(--color-gray-500); }
+}

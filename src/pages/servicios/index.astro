@@ -1,0 +1,341 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/layout/Header';
+import Footer from '../../components/layout/Footer';
+---
+
+<Layout 
+  title="Servicios de Marketing Digital - Marketing Pro"
+  description="Servicios profesionales de marketing digital: SEO, SEM, Social Media, Content Marketing, Email Marketing y Analytics. Resultados garantizados."
+>
+  <Header client:load />
+  
+  <main class="min-h-screen bg-white dark:bg-gray-900">
+    <!-- Hero Section -->
+    <section class="py-20 bg-gradient-to-br from-primary-50 via-white to-secondary-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h1 class="font-display text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+          Servicios de Marketing
+          <span class="block text-primary-500">Digital</span>
+        </h1>
+        <p class="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
+          Estrategias personalizadas que generan resultados reales para tu negocio digital
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="#servicios" class="px-8 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium">
+            Ver Servicios
+          </a>
+          <a href="#contacto" class="px-8 py-3 border-2 border-primary-500 text-primary-500 rounded-lg hover:bg-primary-500 hover:text-white transition-colors font-medium">
+            Consulta Gratuita
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services Grid -->
+    <section id="servicios" class="py-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="font-display text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
+          Nuestros Servicios
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <!-- SEO -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-6">
+              <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">SEO Avanzado</h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">
+              Posicionamiento orgánico que mejora tu visibilidad y atrae tráfico de calidad desde Google.
+            </p>
+            <ul class="space-y-2 mb-6 text-sm text-gray-600 dark:text-gray-300">
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Auditoría SEO completa
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Optimización técnica
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Link building estratégico
+              </li>
+            </ul>
+            <div class="text-2xl font-bold text-primary-500 mb-4">Desde €899/mes</div>
+            <button class="w-full px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium">
+              Más Información
+            </button>
+          </div>
+
+          <!-- SEM -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+            <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-6">
+              <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">SEM & PPC</h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">
+              Campañas de publicidad pagada optimizadas para maximizar tu ROI en todas las plataformas.
+            </p>
+            <ul class="space-y-2 mb-6 text-sm text-gray-600 dark:text-gray-300">
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Google Ads & Bing Ads
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Facebook & Instagram Ads
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Remarketing avanzado
+              </li>
+            </ul>
+            <div class="text-2xl font-bold text-primary-500 mb-4">Desde €699/mes</div>
+            <button class="w-full px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium">
+              Más Información
+            </button>
+          </div>
+
+          <!-- Social Media -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+            <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mb-6">
+              <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-9 0a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2m-9 0h10" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Social Media</h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">
+              Gestión integral de redes sociales que construye comunidades engaged y genera conversiones.
+            </p>
+            <ul class="space-y-2 mb-6 text-sm text-gray-600 dark:text-gray-300">
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Estrategia de contenidos
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Community management
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Influencer marketing
+              </li>
+            </ul>
+            <div class="text-2xl font-bold text-primary-500 mb-4">Desde €599/mes</div>
+            <button class="w-full px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium">
+              Más Información
+            </button>
+          </div>
+
+          <!-- Content Marketing -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+            <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center mb-6">
+              <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Content Marketing</h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">
+              Contenido estratégico que atrae, educa y convierte a tu audiencia en clientes fieles.
+            </p>
+            <ul class="space-y-2 mb-6 text-sm text-gray-600 dark:text-gray-300">
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Blog profesional
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Video marketing
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Storytelling efectivo
+              </li>
+            </ul>
+            <div class="text-2xl font-bold text-primary-500 mb-4">Desde €799/mes</div>
+            <button class="w-full px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium">
+              Más Información
+            </button>
+          </div>
+
+          <!-- Email Marketing -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+            <div class="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center mb-6">
+              <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Email Marketing</h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">
+              Campañas automatizadas que nutren leads y mantienen a tus clientes comprometidos.
+            </p>
+            <ul class="space-y-2 mb-6 text-sm text-gray-600 dark:text-gray-300">
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Automatización avanzada
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Segmentación precisa
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                A/B testing continuo
+              </li>
+            </ul>
+            <div class="text-2xl font-bold text-primary-500 mb-4">Desde €499/mes</div>
+            <button class="w-full px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium">
+              Más Información
+            </button>
+          </div>
+
+          <!-- Analytics -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+            <div class="w-12 h-12 bg-teal-100 dark:bg-teal-900 rounded-lg flex items-center justify-center mb-6">
+              <svg class="w-6 h-6 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Analytics & Data</h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">
+              Análisis profundo de datos para tomar decisiones informadas y optimizar resultados.
+            </p>
+            <ul class="space-y-2 mb-6 text-sm text-gray-600 dark:text-gray-300">
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Google Analytics 4
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Dashboards personalizados
+              </li>
+              <li class="flex items-center">
+                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Reportes automatizados
+              </li>
+            </ul>
+            <div class="text-2xl font-bold text-primary-500 mb-4">Desde €399/mes</div>
+            <button class="w-full px-6 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium">
+              Más Información
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Process Section -->
+    <section class="py-20 bg-gray-50 dark:bg-gray-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="font-display text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
+          Nuestro Proceso
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div class="text-center">
+            <div class="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-white font-bold text-xl">1</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Análisis</h3>
+            <p class="text-gray-600 dark:text-gray-300">
+              Auditamos tu situación actual y identificamos oportunidades de mejora
+            </p>
+          </div>
+          
+          <div class="text-center">
+            <div class="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-white font-bold text-xl">2</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Estrategia</h3>
+            <p class="text-gray-600 dark:text-gray-300">
+              Desarrollamos una estrategia personalizada alineada con tus objetivos
+            </p>
+          </div>
+          
+          <div class="text-center">
+            <div class="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-white font-bold text-xl">3</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Ejecución</h3>
+            <p class="text-gray-600 dark:text-gray-300">
+              Implementamos las tácticas definidas con precisión y excelencia
+            </p>
+          </div>
+          
+          <div class="text-center">
+            <div class="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="text-white font-bold text-xl">4</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Optimización</h3>
+            <p class="text-gray-600 dark:text-gray-300">
+              Monitoreamos y optimizamos continuamente para maximizar resultados
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="contacto" class="py-20 bg-primary-500">
+      <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+        <h2 class="font-display text-3xl font-bold text-white mb-6">
+          ¿Listo para Hacer Crecer tu Negocio?
+        </h2>
+        <p class="text-xl text-primary-100 mb-8">
+          Contáctanos para una consulta gratuita y descubre cómo podemos ayudarte
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="mailto:contacto@marketingpro.com" class="px-8 py-3 bg-white text-primary-500 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+            Consulta Gratuita
+          </a>
+          <a href="tel:+34123456789" class="px-8 py-3 border-2 border-white text-white rounded-lg hover:bg-white hover:text-primary-500 transition-colors font-medium">
+            Llamar Ahora
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <Footer client:load />
+</Layout>

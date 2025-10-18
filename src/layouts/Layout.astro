@@ -1,22 +1,138 @@
-<!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
-	</head>
-	<body>
-		<slot />
-	</body>
-</html>
+---
+export interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+  canonical?: string;
+  noindex?: boolean;
+}
 
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>
+import '../styles/tailwind.css';
+
+const { 
+  title, 
+  description = "Expertos en marketing digital. Estrategias SEO, SEM, Social Media y más para hacer crecer tu negocio online.", 
+  image = "/images/og-image.jpg",
+  canonical,
+  noindex = false 
+} = Astro.props;
+
+const canonicalURL = canonical || new URL(Astro.url.pathname, Astro.site);
+---
+
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href={canonicalURL} />
+    
+    <!-- Robots -->
+    {noindex && <meta name="robots" content="noindex" />}
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL(image, Astro.url)} />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={canonicalURL} />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={new URL(image, Astro.url)} />
+    
+    <!-- Preload removed: using Google Fonts via CSS imports -->
+    
+    <!-- DNS Prefetch -->
+    <link rel="dns-prefetch" href="//images.pexels.com" />
+    
+    <title>{title}</title>
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+    <script>
+      // @ts-ignore - GA snippet uses a global dataLayer not typed by TS
+      window.dataLayer = window.dataLayer || [];
+      // @ts-ignore - define gtag and push to dataLayer
+      function gtag(){ window.dataLayer.push(arguments); } 
+      // @ts-ignore - call gtag with expected args
+      gtag('js', new Date());
+      // @ts-ignore - configure GA
+      gtag('config', 'GA_MEASUREMENT_ID');
+    </script>
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Marketing Pro",
+        "url": "https://marketing-digital-pro.com",
+        "logo": "https://marketing-digital-pro.com/images/logo.png",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+34-123-456-789",
+          "contactType": "customer service"
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Calle Marketing 123",
+          "addressLocality": "Madrid",
+          "addressCountry": "ES"
+        },
+        "sameAs": [
+          "https://facebook.com/marketingpro",
+          "https://twitter.com/marketingpro",
+          "https://linkedin.com/company/marketingpro"
+        ]
+      }
+    </script>
+  </head>
+  
+  <body class="antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <slot />
+    
+    <!-- Back to top button -->
+    <button
+      id="back-to-top"
+      class="fixed bottom-8 right-8 w-12 h-12 bg-primary-500 hover:bg-primary-600 text-white rounded-full shadow-lg opacity-0 invisible transition-all duration-300 z-50 flex items-center justify-center"
+      aria-label="Volver arriba"
+    >
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+      </svg>
+    </button>
+    
+    <script>
+      // Back to top functionality
+      const backToTopButton = document.getElementById('back-to-top');
+      
+      window.addEventListener('scroll', () => {
+        if (window.pageYOffset > 300) {
+          backToTopButton?.classList.remove('opacity-0', 'invisible');
+          backToTopButton?.classList.add('opacity-100', 'visible');
+        } else {
+          backToTopButton?.classList.add('opacity-0', 'invisible');
+          backToTopButton?.classList.remove('opacity-100', 'visible');
+        }
+      });
+      
+      backToTopButton?.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      
+      // Loading optimization
+      window.addEventListener('load', () => {
+        document.body.classList.add('loaded');
+      });
+    </script>
+  </body>
+</html>

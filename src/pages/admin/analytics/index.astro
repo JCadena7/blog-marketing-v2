@@ -1,0 +1,11 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminAnalyticsRoot from '../../../components/admin/AdminAnalyticsRoot';
+---
+
+<Layout 
+  title="Analytics Avanzado - Admin Panel"
+  description="Dashboard de analytics con métricas detalladas, gráficos interactivos y reportes personalizados por rol."
+>
+  <AdminAnalyticsRoot client:only="react" />
+</Layout>

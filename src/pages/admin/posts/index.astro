@@ -1,0 +1,11 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import AdminPostsRoot from '../../../components/admin/AdminPostsRoot';
+---
+
+<Layout 
+  title="Gestión de Posts - Admin Panel"
+  description="Administra todos los posts del blog: crear, editar, publicar y moderar contenido."
+>
+  <AdminPostsRoot client:only="react" />
+</Layout>
