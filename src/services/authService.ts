@@ -136,9 +136,11 @@ async function refreshTokenMock(token: string): Promise<{ user: User; token: str
 
 async function loginApi(credentials: LoginFormData): Promise<{ user: User; token: string }> {
   try {
+    // El backend solo acepta email y password, no rememberMe
+    const { email, password } = credentials;
     const response = await apiClient.post<{ user: User; token: string }>(
       API_CONFIG.ENDPOINTS.LOGIN,
-      credentials
+      { email, password }
     );
     return response;
   } catch (error) {
@@ -149,9 +151,19 @@ async function loginApi(credentials: LoginFormData): Promise<{ user: User; token
 
 async function registerApi(userData: RegisterFormData): Promise<{ user: User; token: string }> {
   try {
+    // Transformar datos del frontend (camelCase) al formato del backend (snake_case)
+    const backendData = {
+      email: userData.email,
+      password: userData.password,
+      first_name: userData.firstName,
+      last_name: userData.lastName,
+      // username es opcional en el backend
+      username: `${userData.firstName.toLowerCase()}_${userData.lastName.toLowerCase()}`
+    };
+    
     const response = await apiClient.post<{ user: User; token: string }>(
       API_CONFIG.ENDPOINTS.REGISTER,
-      userData
+      backendData
     );
     return response;
   } catch (error) {

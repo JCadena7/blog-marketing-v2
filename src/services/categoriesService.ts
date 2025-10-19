@@ -170,3 +170,84 @@ export async function toggleCategoryStatus(categoryId: number): Promise<boolean>
 export function getActiveCategories(): Category[] {
   return categoriesStore.filter(c => c.isActive);
 }
+
+// ==================== ENDPOINTS AVANZADOS DEL BACKEND ====================
+
+/**
+ * Obtener estadísticas generales de categorías
+ */
+export async function getCategoriesStats(): Promise<any> {
+  if (!useRealApi()) {
+    return {
+      total: categoriesStore.length,
+      active: categoriesStore.filter(c => c.isActive).length,
+      inactive: categoriesStore.filter(c => !c.isActive).length,
+      totalPosts: categoriesStore.reduce((sum, c) => sum + c.postsCount, 0)
+    };
+  }
+  
+  try {
+    const stats = await apiClient.get(
+      API_CONFIG.ENDPOINTS.CATEGORIES_STATS_GENERAL
+    );
+    return stats;
+  } catch (error) {
+    console.error('Error fetching categories stats:', error);
+    return {};
+  }
+}
+
+/**
+ * Obtener engagement por categoría
+ */
+export async function getCategoriesEngagement(): Promise<any[]> {
+  if (!useRealApi()) return [];
+  
+  try {
+    const engagement = await apiClient.get(
+      API_CONFIG.ENDPOINTS.CATEGORIES_STATS_ENGAGEMENT
+    );
+    return engagement as any[];
+  } catch (error) {
+    console.error('Error fetching categories engagement:', error);
+    return [];
+  }
+}
+
+/**
+ * Obtener categorías con mejor rendimiento
+ */
+export async function getCategoriesMejorRendimiento(): Promise<any[]> {
+  if (!useRealApi()) {
+    return [...categoriesStore]
+      .sort((a, b) => b.postsCount - a.postsCount)
+      .slice(0, 10);
+  }
+  
+  try {
+    const categories = await apiClient.get(
+      API_CONFIG.ENDPOINTS.CATEGORIES_STATS_MEJOR_RENDIMIENTO
+    );
+    return categories as any[];
+  } catch (error) {
+    console.error('Error fetching best performing categories:', error);
+    return [];
+  }
+}
+
+/**
+ * Obtener estructura jerárquica de categorías
+ */
+export async function getCategoriesJerarquicas(): Promise<any[]> {
+  if (!useRealApi()) return categoriesStore;
+  
+  try {
+    const categories = await apiClient.get(
+      API_CONFIG.ENDPOINTS.CATEGORIES_STATS_JERARQUICAS
+    );
+    return categories as any[];
+  } catch (error) {
+    console.error('Error fetching hierarchical categories:', error);
+    return [];
+  }
+}

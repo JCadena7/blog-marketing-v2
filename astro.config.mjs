@@ -17,6 +17,7 @@ export default defineConfig({
     plugins: [
       tailwindcss()
     ],
+    envPrefix: 'VITE_',
     build: {
       cssMinify: true,
       minify: 'esbuild',

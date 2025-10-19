@@ -194,3 +194,82 @@ export function getPendingComments(): Comment[] {
 export function getCommentsByPost(postId: string | number): Comment[] {
   return commentsStore.filter((c) => c.postId === postId);
 }
+
+// ==================== ENDPOINTS AVANZADOS DEL BACKEND ====================
+
+/**
+ * Obtener estadísticas generales de comentarios
+ */
+export async function getCommentsStats(): Promise<any> {
+  if (!useRealApi()) {
+    return {
+      total: commentsStore.length,
+      approved: commentsStore.filter(c => c.status === 'approved').length,
+      pending: commentsStore.filter(c => c.status === 'pending').length,
+      spam: commentsStore.filter(c => c.status === 'spam').length
+    };
+  }
+  
+  try {
+    const stats = await apiClient.get(
+      API_CONFIG.ENDPOINTS.COMMENTS_STATS_GENERAL
+    );
+    return stats;
+  } catch (error) {
+    console.error('Error fetching comments stats:', error);
+    return {};
+  }
+}
+
+/**
+ * Obtener posts más comentados
+ */
+export async function getTopCommentedPosts(limit: number = 10): Promise<any[]> {
+  if (!useRealApi()) return [];
+  
+  try {
+    const posts = await apiClient.get(
+      `${API_CONFIG.ENDPOINTS.COMMENTS_STATS_TOP_COMMENTED}?limit=${limit}`
+    );
+    return posts as any[];
+  } catch (error) {
+    console.error('Error fetching top commented posts:', error);
+    return [];
+  }
+}
+
+/**
+ * Obtener usuarios más activos en comentarios
+ */
+export async function getMostActiveCommenters(limit: number = 10): Promise<any[]> {
+  if (!useRealApi()) return [];
+  
+  try {
+    const users = await apiClient.get(
+      `${API_CONFIG.ENDPOINTS.COMMENTS_STATS_MOST_ACTIVE}?limit=${limit}`
+    );
+    return users as any[];
+  } catch (error) {
+    console.error('Error fetching most active commenters:', error);
+    return [];
+  }
+}
+
+/**
+ * Obtener respuestas de un comentario
+ */
+export async function getCommentReplies(commentId: number): Promise<Comment[]> {
+  if (!useRealApi()) {
+    return commentsStore.filter(c => c.parentId === commentId);
+  }
+  
+  try {
+    const replies = await apiClient.get<Comment[]>(
+      API_CONFIG.ENDPOINTS.COMMENT_REPLIES(commentId)
+    );
+    return replies;
+  } catch (error) {
+    console.error('Error fetching comment replies:', error);
+    return [];
+  }
+}

@@ -54,9 +54,20 @@ async function getAllUsersApi(): Promise<User[]> {
 
 async function changeUserRoleApi(userId: number, newRole: Role): Promise<User | null> {
   try {
+    // El backend espera rolId (número), no role (string)
+    // Mapeo temporal - ajustar según los IDs reales de roles en el backend
+    const roleIdMap: Record<Role, number> = {
+      'creador': 1,
+      'administrador': 2,
+      'editor': 3,
+      'escritor': 4,
+      'autor': 5,
+      'comentador': 6
+    };
+    
     const user = await apiClient.patch<User>(
       API_CONFIG.ENDPOINTS.CHANGE_USER_ROLE(userId),
-      { role: newRole }
+      { rolId: roleIdMap[newRole] || 5 } // Default: autor
     );
     return user;
   } catch (error) {
