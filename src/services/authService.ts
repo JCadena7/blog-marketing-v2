@@ -40,7 +40,15 @@ export const validateToken = (token: string): User | null => {
     if (typeof window !== 'undefined') {
       const storedUser = localStorage.getItem('user_data');
       if (storedUser) {
-        return JSON.parse(storedUser);
+        const user = JSON.parse(storedUser);
+        
+        // Asegurar que el usuario tenga el formato correcto
+        // Si tiene 'rol' en lugar de 'role', mapearlo
+        if (user.rol && !user.role) {
+          user.role = user.rol;
+        }
+        
+        return user;
       }
     }
     
@@ -159,7 +167,7 @@ async function loginApi(credentials: LoginFormData): Promise<{ user: User; token
     // El backend solo acepta email y password, no rememberMe
     const { email, password } = credentials;
     const response = await apiClient.post<any>(
-      API_CONFIG.ENDPOINTS.LOGIN,
+      API_CONFIG.ENDPOINTS.LOGIN as string,
       { email, password }
     );
     
@@ -173,15 +181,33 @@ async function loginApi(credentials: LoginFormData): Promise<{ user: User; token
     
     console.log('✅ Token mapeado:', token);
     console.log('✅ Refresh token:', refreshToken);
-    console.log('✅ Usuario:', response.user);
+    console.log('✅ Usuario recibido:', response.user);
     
     // Guardar refresh token en localStorage para uso futuro
     if (typeof window !== 'undefined' && refreshToken) {
       localStorage.setItem('refresh_token', refreshToken);
     }
     
+    // Mapear usuario del backend al formato del frontend
+    const mappedUser: User = {
+      id: response.user.id,
+      username: response.user.username,
+      email: response.user.email,
+      firstName: response.user.firstName,
+      lastName: response.user.lastName,
+      role: response.user.rol || response.user.role, // Backend usa 'rol', frontend usa 'role'
+      avatar: response.user.avatar || `https://ui-avatars.com/api/?name=${response.user.firstName}+${response.user.lastName}`,
+      status: response.user.status || 'active',
+      lastLogin: response.user.lastLogin || new Date().toISOString(),
+      createdAt: response.user.createdAt || new Date().toISOString(),
+      permissions: response.user.permissions || [],
+      stats: response.user.stats || {}
+    };
+    
+    console.log('✅ Usuario mapeado:', mappedUser);
+    
     return {
-      user: response.user,
+      user: mappedUser,
       token: token
     };
   } catch (error) {
@@ -203,7 +229,7 @@ async function registerApi(userData: RegisterFormData): Promise<{ user: User; to
     };
     
     const response = await apiClient.post<{ user: User; token: string }>(
-      API_CONFIG.ENDPOINTS.REGISTER,
+      API_CONFIG.ENDPOINTS.REGISTER as string,
       backendData
     );
     return response;
@@ -215,7 +241,7 @@ async function registerApi(userData: RegisterFormData): Promise<{ user: User; to
 
 async function logoutApi(): Promise<void> {
   try {
-    await apiClient.post(API_CONFIG.ENDPOINTS.LOGOUT, {});
+    await apiClient.post(API_CONFIG.ENDPOINTS.LOGOUT as string, {});
   } catch (error) {
     console.error('Error logging out via API:', error);
   }

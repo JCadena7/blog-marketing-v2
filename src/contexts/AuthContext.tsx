@@ -66,6 +66,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
         const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user_data') : null;
+        // console.log('Stored token:', storedToken);
+        // console.log('Stored user:', storedUser);
         const demo = typeof window !== 'undefined' ? localStorage.getItem('demo_mode') : null;
         const strict = typeof window !== 'undefined' ? localStorage.getItem('preview_strict') : null;
 
@@ -128,6 +130,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth_token', token);
         localStorage.setItem('user_data', JSON.stringify(userData));
+        console.log('User logged in:', userData);
         // Clear demo mode when doing real login
         localStorage.removeItem('demo_mode');
         localStorage.removeItem('mock_user_id');

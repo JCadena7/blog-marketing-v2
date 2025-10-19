@@ -14,7 +14,26 @@ if (import.meta.env.DEV) {
   console.log('  - USE_REAL_API:', true);
 }
 
-export const API_CONFIG = {
+// Type definition for API configuration
+interface ApiConfig {
+  USE_REAL_API: boolean;
+  BASE_URL: string;
+  ENDPOINTS: {
+    [key: string]: 
+      | string 
+      | ((arg: string) => string)
+      | ((arg: number) => string)
+      | ((arg: string | number) => string)
+      | ((arg1: number, arg2: number) => string);
+  };
+  TIMEOUT: number;
+  RETRY: {
+    MAX_RETRIES: number;
+    RETRY_DELAY: number;
+  };
+}
+
+export const API_CONFIG: ApiConfig = {
   // Set to false to use mock data, true to use real API
   USE_REAL_API: true, // Cambia a true cuando quieras usar el backend real
   
