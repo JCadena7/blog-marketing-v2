@@ -33,6 +33,16 @@ class ApiClient {
   }
 
   /**
+   * Get auth token from localStorage
+   */
+  private getAuthToken(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('auth_token');
+    }
+    return null;
+  }
+
+  /**
    * Generic request method
    */
   private async request<T>(
@@ -47,11 +57,27 @@ class ApiClient {
     try {
       const url = getApiUrl(endpoint);
       
+      // Get auth token and add to headers if available
+      const token = this.getAuthToken();
+      console.log('Token:', token);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        if (import.meta.env.DEV) {
+          console.log('🔐 Token incluido en petición:', token.substring(0, 20) + '...');
+        }
+      } else if (import.meta.env.DEV) {
+        console.log('⚠️ No hay token disponible para esta petición');
+      }
+      
       const response = await fetch(url, {
         ...fetchOptions,
         signal: controller.signal,
         headers: {
-          'Content-Type': 'application/json',
+          ...headers,
           ...fetchOptions.headers,
         },
       });
@@ -176,9 +202,18 @@ class ApiClient {
 
     const url = getApiUrl(endpoint);
     
+    // Get auth token and add to headers if available
+    const token = this.getAuthToken();
+    const headers: Record<string, string> = {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(url, {
       method: 'POST',
       body: formData,
+      headers,
       // Don't set Content-Type header, let browser set it with boundary
     });
 

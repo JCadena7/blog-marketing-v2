@@ -18,15 +18,35 @@ const generateToken = (user: User): string => {
   return btoa(JSON.stringify(payload));
 };
 
-// Mock token validation
+// Token validation - works with real JWT tokens
 export const validateToken = (token: string): User | null => {
   try {
-    const payload = JSON.parse(atob(token));
-    if (payload.exp < Date.now()) {
-      return null; // Token expired
+    if (!token) return null;
+    
+    // Decode JWT token (format: header.payload.signature)
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    
+    // Decode payload (base64url)
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    
+    // Check if token is expired
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      console.log('⚠️ Token expirado');
+      return null;
     }
-    return mockUsers.find(user => user.id === payload.id) || null;
-  } catch {
+    
+    // Get user data from localStorage (saved during login)
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('user_data');
+      if (storedUser) {
+        return JSON.parse(storedUser);
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error validating token:', error);
     return null;
   }
 };
@@ -138,11 +158,32 @@ async function loginApi(credentials: LoginFormData): Promise<{ user: User; token
   try {
     // El backend solo acepta email y password, no rememberMe
     const { email, password } = credentials;
-    const response = await apiClient.post<{ user: User; token: string }>(
+    const response = await apiClient.post<any>(
       API_CONFIG.ENDPOINTS.LOGIN,
       { email, password }
     );
-    return response;
+    
+    // Debug: Ver qué devuelve el backend
+    console.log('🔍 Respuesta del backend:', response);
+    
+    // El backend devuelve accessToken, no token
+    // También devuelve refreshToken que podemos guardar para después
+    const token = response.accessToken || response.token;
+    const refreshToken = response.refreshToken;
+    
+    console.log('✅ Token mapeado:', token);
+    console.log('✅ Refresh token:', refreshToken);
+    console.log('✅ Usuario:', response.user);
+    
+    // Guardar refresh token en localStorage para uso futuro
+    if (typeof window !== 'undefined' && refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken);
+    }
+    
+    return {
+      user: response.user,
+      token: token
+    };
   } catch (error) {
     console.error('Error logging in via API:', error);
     throw error;
