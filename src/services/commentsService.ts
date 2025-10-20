@@ -1,10 +1,71 @@
 import { mockComments, type Comment } from '../data/mockComments';
 import { useRealApi, API_CONFIG } from '../config/api';
 import { apiClient } from '../lib/apiClient';
+import type { CommentBackend, CommentsPaginatedResponse } from '../types';
 
 let commentsStore: Comment[] = [...mockComments];
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+// ==================== TRANSFORMERS ====================
+
+/**
+ * Transforma un comentario del backend (snake_case) al formato del frontend (camelCase)
+ */
+function transformCommentFromBackend(backendComment: CommentBackend): Comment {
+  // Crear objeto author usando datos del backend si están disponibles
+  const author = backendComment.usuario ? {
+    id: backendComment.usuario.id,
+    name: `${backendComment.usuario.first_name} ${backendComment.usuario.last_name}`.trim() || backendComment.usuario.username,
+    email: backendComment.usuario.email,
+    avatar: backendComment.usuario.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(backendComment.usuario.username)}&background=3B82F6&color=fff`,
+    username: backendComment.usuario.username,
+    firstName: backendComment.usuario.first_name,
+    lastName: backendComment.usuario.last_name
+  } : {
+    id: backendComment.usuario_id,
+    name: `Usuario ${backendComment.usuario_id}`,
+    email: '',
+    avatar: `https://ui-avatars.com/api/?name=Usuario+${backendComment.usuario_id}&background=3B82F6&color=fff`
+  };
+
+  return {
+    id: backendComment.id,
+    content: backendComment.contenido,
+    postId: backendComment.post_id,
+    authorId: backendComment.usuario_id,
+    author: author,
+    status: backendComment.status,
+    parentId: backendComment.parent_id,
+    likes: backendComment.likes,
+    isEdited: backendComment.is_edited,
+    editedAt: backendComment.edited_at,
+    moderatedBy: backendComment.moderated_by,
+    moderatedAt: backendComment.moderated_at,
+    moderationNotes: backendComment.moderation_notes,
+    createdAt: backendComment.created_at,
+    updatedAt: backendComment.updated_at,
+    depth: backendComment.depth,
+    path: backendComment.path,
+    // Transformar replies recursivamente si existen
+    replies: backendComment.replies?.map(transformCommentFromBackend) || []
+  };
+}
+
+/**
+ * Transforma un comentario del frontend (camelCase) al formato del backend (snake_case)
+ */
+function transformCommentToBackend(comment: Partial<Comment>): Partial<CommentBackend> {
+  const backendData: any = {};
+  
+  if (comment.content !== undefined) backendData.contenido = comment.content;
+  if (comment.postId !== undefined) backendData.post_id = comment.postId;
+  if (comment.authorId !== undefined) backendData.usuario_id = comment.authorId;
+  if (comment.parentId !== undefined) backendData.parent_id = comment.parentId;
+  if (comment.status !== undefined) backendData.status = comment.status;
+  
+  return backendData;
+}
 
 // ==================== MOCK DATA LAYER ====================
 
@@ -89,8 +150,13 @@ async function reportCommentMock(commentId: number, reportData: { reason: string
 
 async function getAllCommentsApi(): Promise<Comment[]> {
   try {
-    const comments = await apiClient.get<Comment[]>(API_CONFIG.ENDPOINTS.COMMENTS as string);
-    return comments;
+    const query = new URLSearchParams();
+    query.append('withUser', 'true');
+    // query.append('withReplies', 'true');
+    const response = await apiClient.get<CommentsPaginatedResponse>(
+      `${API_CONFIG.ENDPOINTS.COMMENTS as string}?${query.toString()}`
+    );
+    return response.items.map(transformCommentFromBackend);
   } catch (error) {
     console.error('Error fetching comments from API:', error);
     return [];
@@ -103,11 +169,11 @@ async function updateCommentStatusApi(
   notes?: string
 ): Promise<Comment | null> {
   try {
-    const comment = await apiClient.patch<Comment>(
+    const backendComment = await apiClient.patch<CommentBackend>(
       (API_CONFIG.ENDPOINTS.MODERATE_COMMENT as (id: number) => string)(commentId),
-      { status: newStatus, notes }
+      { status: newStatus, moderation_notes: notes }
     );
-    return comment;
+    return transformCommentFromBackend(backendComment);
   } catch (error) {
     console.error('Error updating comment status via API:', error);
     return null;
@@ -126,11 +192,12 @@ async function deleteCommentApi(commentId: number): Promise<boolean> {
 
 async function createCommentApi(commentData: Partial<Comment>): Promise<Comment> {
   try {
-    const comment = await apiClient.post<Comment>(
+    const backendData = transformCommentToBackend(commentData);
+    const backendComment = await apiClient.post<CommentBackend>(
       API_CONFIG.ENDPOINTS.COMMENTS as string,
-      commentData
+      backendData
     );
-    return comment;
+    return transformCommentFromBackend(backendComment);
   } catch (error) {
     console.error('Error creating comment via API:', error);
     throw error;
@@ -193,6 +260,60 @@ export function getPendingComments(): Comment[] {
 
 export function getCommentsByPost(postId: string | number): Comment[] {
   return commentsStore.filter((c) => c.postId === postId);
+}
+
+/**
+ * Obtener comentarios de un post específico con opciones de query
+ * @param postId - ID del post
+ * @param options - Opciones de consulta (withUser, withReplies, page, limit)
+ */
+export async function getCommentsByPostId(
+  postId: number,
+  options: {
+    withUser?: boolean;
+    withReplies?: boolean;
+    page?: number;
+    limit?: number;
+  } = {}
+): Promise<{ comments: Comment[]; total: number; page: number; pages: number }> {
+  const { withUser = true, withReplies = true, page = 1, limit = 10 } = options;
+  
+  if (!useRealApi()) {
+    const filtered = commentsStore.filter((c) => c.postId === postId);
+    return {
+      comments: filtered,
+      total: filtered.length,
+      page: 1,
+      pages: 1
+    };
+  }
+  
+  try {
+    const queryParams = new URLSearchParams();
+    queryParams.append('withUser', withUser.toString());
+    queryParams.append('withReplies', withReplies.toString());
+    queryParams.append('page', page.toString());
+    queryParams.append('limit', limit.toString());
+    
+    const response = await apiClient.get<CommentsPaginatedResponse>(
+      `${(API_CONFIG.ENDPOINTS.COMMENTS_BY_POST as (id: number) => string)(postId)}?${queryParams.toString()}`
+    );
+    
+    return {
+      comments: response.items.map(transformCommentFromBackend),
+      total: response.total,
+      page: response.page,
+      pages: response.pages
+    };
+  } catch (error) {
+    console.error('Error fetching comments by post:', error);
+    return {
+      comments: [],
+      total: 0,
+      page: 1,
+      pages: 0
+    };
+  }
 }
 
 // ==================== ENDPOINTS AVANZADOS DEL BACKEND ====================
@@ -264,10 +385,10 @@ export async function getCommentReplies(commentId: number): Promise<Comment[]> {
   }
   
   try {
-    const replies = await apiClient.get<Comment[]>(
+    const backendReplies = await apiClient.get<CommentBackend[]>(
       (API_CONFIG.ENDPOINTS.COMMENT_REPLIES as (id: number) => string)(commentId)
     );
-    return replies;
+    return backendReplies.map(transformCommentFromBackend);
   } catch (error) {
     console.error('Error fetching comment replies:', error);
     return [];

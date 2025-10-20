@@ -7,6 +7,31 @@ let usersStore: User[] = [...mockUsers];
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
+function transformUserFromBackend(u: any): User {
+  return {
+    id: u.id,
+    username: u.username,
+    email: u.email,
+    firstName: u.firstName,
+    lastName: u.lastName,
+    role: (u.rol?.nombre || 'autor') as any,
+    avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username)}&background=3B82F6&color=fff`,
+    status: u.status,
+    lastLogin: u.lastLogin || '',
+    createdAt: u.createdAt,
+    permissions: [],
+    stats: {
+      postsCreated: u.stats?.postsCreated || 0,
+      commentsApproved: u.stats?.commentsApproved || 0,
+      usersManaged: u.stats?.usersManaged || 0,
+      postsEdited: u.stats?.postsEdited || 0,
+      postsPublished: u.stats?.postsPublished || 0,
+      commentsModerated: u.stats?.commentsModerated || 0,
+      totalViews: u.stats?.totalViews || 0,
+    },
+  };
+}
+
 // ==================== MOCK DATA LAYER ====================
 
 async function getAllUsersMock(): Promise<User[]> {
@@ -44,8 +69,8 @@ async function deleteUserMock(userId: number): Promise<boolean> {
 
 async function getAllUsersApi(): Promise<User[]> {
   try {
-    const users = await apiClient.get<User[]>(API_CONFIG.ENDPOINTS.USERS as string);
-    return users;
+    const users = await apiClient.get<any[]>(API_CONFIG.ENDPOINTS.USERS as string);
+    return users.map(transformUserFromBackend);
   } catch (error) {
     console.error('Error fetching users from API:', error);
     return [];
@@ -55,21 +80,28 @@ async function getAllUsersApi(): Promise<User[]> {
 async function changeUserRoleApi(userId: number, newRole: Role): Promise<User | null> {
   try {
     // El backend espera rolId (número), no role (string)
-    // Mapeo temporal - ajustar según los IDs reales de roles en el backend
+    // Mapeo según los IDs reales de roles en el backend (GET /rbac/roles)
     const roleIdMap: Record<Role, number> = {
-      'creador': 1,
-      'administrador': 2,
-      'editor': 3,
-      'escritor': 4,
-      'autor': 5,
-      'comentador': 6
+      'administrador': 1,
+      'editor': 2,
+      'autor': 3,
+      'comentador': 4,
+      // Roles que no existen en el backend, mapear a autor por defecto
+      'creador': 3,      // → autor
+      'escritor': 3      // → autor
     };
     
-    const user = await apiClient.patch<User>(
+    const payload = { 
+      id: userId,  // Requerido por UpdateUserDto del backend
+      rolId: roleIdMap[newRole] || 3 
+    };
+    console.log('🔄 Cambiando rol de usuario:', { userId, newRole, payload });
+    
+    const user = await apiClient.patch<any>(
       (API_CONFIG.ENDPOINTS.CHANGE_USER_ROLE as (id: number) => string)(userId),
-      { rolId: roleIdMap[newRole] || 5 } // Default: autor
+      payload
     );
-    return user;
+    return transformUserFromBackend(user);
   } catch (error) {
     console.error('Error changing user role via API:', error);
     return null;
@@ -81,11 +113,14 @@ async function updateUserStatusApi(
   newStatus: User['status']
 ): Promise<User | null> {
   try {
-    const user = await apiClient.patch<User>(
+    const user = await apiClient.patch<any>(
       (API_CONFIG.ENDPOINTS.UPDATE_USER_STATUS as (id: number) => string)(userId),
-      { status: newStatus }
+      { 
+        id: userId,  // Requerido por UpdateUserDto del backend
+        status: newStatus 
+      }
     );
-    return user;
+    return transformUserFromBackend(user);
   } catch (error) {
     console.error('Error updating user status via API:', error);
     return null;
@@ -121,4 +156,21 @@ export async function updateUserStatus(
 
 export async function deleteUser(userId: number): Promise<boolean> {
   return useRealApi() ? deleteUserApi(userId) : deleteUserMock(userId);
+}
+
+/**
+ * Obtener todos los roles disponibles del backend
+ * Útil para verificar el mapeo correcto de IDs
+ */
+export async function getRoles(): Promise<any[]> {
+  if (!useRealApi()) return [];
+  
+  try {
+    const roles = await apiClient.get<any[]>(API_CONFIG.ENDPOINTS.RBAC_ROLES as string);
+    console.log('📋 Roles disponibles en el backend:', roles);
+    return roles;
+  } catch (error) {
+    console.error('Error fetching roles:', error);
+    return [];
+  }
 }

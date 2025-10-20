@@ -327,23 +327,69 @@ export type CommentStatus = 'pending' | 'approved' | 'rejected' | 'spam';
 export interface Comment {
   id: number;
   postId: string | number;
-  postTitle: string;
+  postTitle?: string;
   authorId: number;
   author: {
     id: number;
     name: string;
     email: string;
-    avatar: string;
+    avatar: string | null;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
   };
   content: string;
   status: CommentStatus;
-  parentId?: number;
+  parentId?: number | null;
   likes: number;
   createdAt: string;
   updatedAt: string;
-  moderatedBy?: number;
-  moderatedAt?: string;
-  moderationNotes?: string;
+  moderatedBy?: number | null;
+  moderatedAt?: string | null;
+  moderationNotes?: string | null;
+  isEdited?: boolean;
+  editedAt?: string | null;
+  depth?: number;
+  path?: number[];
+  replies?: Comment[];
+}
+
+// Tipo para la respuesta del backend (snake_case)
+export interface CommentBackend {
+  id: number;
+  contenido: string;
+  post_id: number;
+  usuario_id: number;
+  parent_id: number | null;
+  status: CommentStatus;
+  likes: number;
+  is_edited: boolean;
+  edited_at: string | null;
+  moderated_by: number | null;
+  moderated_at: string | null;
+  moderation_notes: string | null;
+  created_at: string;
+  updated_at: string;
+  depth?: number;
+  path?: number[];
+  usuario?: {
+    id: number;
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    avatar: string | null;
+  };
+  replies?: CommentBackend[];
+}
+
+// Tipo para la respuesta paginada de comentarios
+export interface CommentsPaginatedResponse {
+  items: CommentBackend[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
 }
 
 // ============================================================================
