@@ -89,7 +89,7 @@ async function reportCommentMock(commentId: number, reportData: { reason: string
 
 async function getAllCommentsApi(): Promise<Comment[]> {
   try {
-    const comments = await apiClient.get<Comment[]>(API_CONFIG.ENDPOINTS.COMMENTS);
+    const comments = await apiClient.get<Comment[]>(API_CONFIG.ENDPOINTS.COMMENTS as string);
     return comments;
   } catch (error) {
     console.error('Error fetching comments from API:', error);
@@ -104,7 +104,7 @@ async function updateCommentStatusApi(
 ): Promise<Comment | null> {
   try {
     const comment = await apiClient.patch<Comment>(
-      API_CONFIG.ENDPOINTS.MODERATE_COMMENT(commentId),
+      (API_CONFIG.ENDPOINTS.MODERATE_COMMENT as (id: number) => string)(commentId),
       { status: newStatus, notes }
     );
     return comment;
@@ -116,7 +116,7 @@ async function updateCommentStatusApi(
 
 async function deleteCommentApi(commentId: number): Promise<boolean> {
   try {
-    await apiClient.delete(API_CONFIG.ENDPOINTS.COMMENT_BY_ID(commentId));
+    await apiClient.delete((API_CONFIG.ENDPOINTS.COMMENT_BY_ID as (id: number) => string)(commentId));
     return true;
   } catch (error) {
     console.error('Error deleting comment via API:', error);
@@ -127,7 +127,7 @@ async function deleteCommentApi(commentId: number): Promise<boolean> {
 async function createCommentApi(commentData: Partial<Comment>): Promise<Comment> {
   try {
     const comment = await apiClient.post<Comment>(
-      API_CONFIG.ENDPOINTS.COMMENTS,
+      API_CONFIG.ENDPOINTS.COMMENTS as string,
       commentData
     );
     return comment;
@@ -139,7 +139,7 @@ async function createCommentApi(commentData: Partial<Comment>): Promise<Comment>
 
 async function likeCommentApi(commentId: number): Promise<boolean> {
   try {
-    await apiClient.post(`${API_CONFIG.ENDPOINTS.COMMENT_BY_ID(commentId)}/like`, {});
+    await apiClient.post(`${(API_CONFIG.ENDPOINTS.COMMENT_BY_ID as (id: number) => string)(commentId)}/like`, {});
     return true;
   } catch (error) {
     console.error('Error liking comment via API:', error);
@@ -149,7 +149,7 @@ async function likeCommentApi(commentId: number): Promise<boolean> {
 
 async function reportCommentApi(commentId: number, reportData: { reason: string; description?: string }): Promise<boolean> {
   try {
-    await apiClient.post(`${API_CONFIG.ENDPOINTS.COMMENT_BY_ID(commentId)}/report`, reportData);
+    await apiClient.post(`${(API_CONFIG.ENDPOINTS.COMMENT_BY_ID as (id: number) => string)(commentId)}/report`, reportData);
     return true;
   } catch (error) {
     console.error('Error reporting comment via API:', error);
@@ -212,7 +212,7 @@ export async function getCommentsStats(): Promise<any> {
   
   try {
     const stats = await apiClient.get(
-      API_CONFIG.ENDPOINTS.COMMENTS_STATS_GENERAL
+      API_CONFIG.ENDPOINTS.COMMENTS_STATS_GENERAL as string
     );
     return stats;
   } catch (error) {
@@ -229,7 +229,7 @@ export async function getTopCommentedPosts(limit: number = 10): Promise<any[]> {
   
   try {
     const posts = await apiClient.get(
-      `${API_CONFIG.ENDPOINTS.COMMENTS_STATS_TOP_COMMENTED}?limit=${limit}`
+      `${API_CONFIG.ENDPOINTS.COMMENTS_STATS_TOP_COMMENTED as string}?limit=${limit}`
     );
     return posts as any[];
   } catch (error) {
@@ -246,7 +246,7 @@ export async function getMostActiveCommenters(limit: number = 10): Promise<any[]
   
   try {
     const users = await apiClient.get(
-      `${API_CONFIG.ENDPOINTS.COMMENTS_STATS_MOST_ACTIVE}?limit=${limit}`
+      `${API_CONFIG.ENDPOINTS.COMMENTS_STATS_MOST_ACTIVE as string}?limit=${limit}`
     );
     return users as any[];
   } catch (error) {
@@ -265,7 +265,7 @@ export async function getCommentReplies(commentId: number): Promise<Comment[]> {
   
   try {
     const replies = await apiClient.get<Comment[]>(
-      API_CONFIG.ENDPOINTS.COMMENT_REPLIES(commentId)
+      (API_CONFIG.ENDPOINTS.COMMENT_REPLIES as (id: number) => string)(commentId)
     );
     return replies;
   } catch (error) {

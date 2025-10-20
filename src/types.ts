@@ -147,19 +147,30 @@ export interface Post {
   excerpt: string;
   status: PostStatus;
   authorId: number;
-  author: {
+  author?: {
     id: number;
     name: string;
     avatar: string;
   };
-  categoryId: number;
-  category: {
+  categoryId?: number;
+  category?: {
     id: number;
     name: string;
     slug: string;
     color: string;
   };
-  tags: string[];
+  categories?: Array<{
+    id: number;
+    nombre: string;
+    slug: string;
+    color: string;
+  }>;
+  tags?: string[];
+  keywords?: Array<{
+    id: number;
+    keyword: string;
+    slug: string;
+  }>;
   featuredImage: string;
   publishedAt?: string;
   createdAt: string;
@@ -169,8 +180,64 @@ export interface Post {
   likes: number;
   comments: number;
   shares: number;
-  seo: PostSEO;
+  featured?: boolean;
+  allowComments?: boolean;
+  isPinned?: boolean;
+  estadoId?: number;
+  seo?: PostSEO;
   editorial?: PostEditorial;
+}
+
+// Tipo para la respuesta del backend (snake_case)
+export interface PostBackend {
+  id: number;
+  titulo: string;
+  slug: string;
+  contenido: string;
+  extracto: string;
+  imagen_destacada: string;
+  usuario_id: number;
+  estado_id: number;
+  fecha_publicacion?: string;
+  tiempo_lectura: number;
+  views: number;
+  likes: number;
+  comments_count: number;
+  shares: number;
+  featured: boolean;
+  allow_comments: boolean;
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+  // Relaciones opcionales que el backend puede incluir
+  author?: {
+    id: number;
+    name: string;
+    avatar: string | null;
+    username: string;
+  };
+  categorias?: Array<{
+    id: number;
+    nombre: string;
+    slug: string;
+    color: string;
+  }>;
+  keywords?: Array<{
+    id: number;
+    keyword: string;
+    slug: string;
+  }>;
+  seo?: {
+    meta_title: string;
+    focus_keyword: string;
+    meta_description: string;
+    readabilityScore?: number;
+  };
+  editorial?: {
+    review_date?: string;
+    reviewer_id?: number;
+    review_notes?: string;
+  };
 }
 
 export interface PostSEO {
@@ -229,7 +296,26 @@ export interface Category {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  createdBy: number;
+  createdBy: number | null;
+  parentId?: number | null;
+  displayOrder?: number;
+}
+
+// Tipo para la respuesta del backend (snake_case)
+export interface CategoryBackend {
+  id: number;
+  nombre: string;
+  slug: string;
+  descripcion: string;
+  color: string;
+  icono: string;
+  posts_count: number;
+  is_active: boolean;
+  created_by: number | null;
+  parent_id?: number | null;
+  display_order?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 // ============================================================================

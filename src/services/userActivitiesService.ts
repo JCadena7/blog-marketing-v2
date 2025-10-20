@@ -89,7 +89,7 @@ export async function getActivityById(id: string): Promise<UserActivity | null> 
   
   try {
     const activity = await apiClient.get<UserActivity>(
-      API_CONFIG.ENDPOINTS.USER_ACTIVITY_BY_ID(id)
+      (API_CONFIG.ENDPOINTS.USER_ACTIVITY_BY_ID as (id: string) => string)(id)
     );
     return activity;
   } catch (error) {
@@ -123,7 +123,7 @@ export async function getActivitiesByUser(
     if (filters?.page) queryParams.append('page', filters.page.toString());
     if (filters?.limit) queryParams.append('limit', filters.limit.toString());
     
-    const url = `${API_CONFIG.ENDPOINTS.USER_ACTIVITIES_BY_USER(userId)}?${queryParams.toString()}`;
+    const url = `${(API_CONFIG.ENDPOINTS.USER_ACTIVITIES_BY_USER as (id: number) => string)(userId)}?${queryParams.toString()}`;
     const response = await apiClient.get<ActivitiesResponse>(url);
     return response;
   } catch (error) {
@@ -159,7 +159,7 @@ export async function createActivity(data: {
   
   try {
     const activity = await apiClient.post<UserActivity>(
-      API_CONFIG.ENDPOINTS.USER_ACTIVITIES,
+      API_CONFIG.ENDPOINTS.USER_ACTIVITIES as string,
       data
     );
     return activity;
@@ -176,7 +176,7 @@ export async function deleteActivity(id: string): Promise<boolean> {
   if (!useRealApi()) return true;
   
   try {
-    await apiClient.delete(API_CONFIG.ENDPOINTS.USER_ACTIVITY_BY_ID(id));
+    await apiClient.delete((API_CONFIG.ENDPOINTS.USER_ACTIVITY_BY_ID as (id: string) => string)(id));
     return true;
   } catch (error) {
     console.error('Error deleting activity:', error);
@@ -192,7 +192,7 @@ export async function deleteActivitiesByUser(userId: number): Promise<boolean> {
   
   try {
     await apiClient.delete(
-      API_CONFIG.ENDPOINTS.USER_ACTIVITIES_BY_USER(userId)
+      (API_CONFIG.ENDPOINTS.USER_ACTIVITIES_BY_USER as (id: number) => string)(userId)
     );
     return true;
   } catch (error) {

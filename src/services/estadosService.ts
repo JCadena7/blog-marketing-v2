@@ -32,7 +32,7 @@ export async function getAllEstados(): Promise<Estado[]> {
   }
   
   try {
-    const estados = await apiClient.get<Estado[]>(API_CONFIG.ENDPOINTS.ESTADOS);
+    const estados = await apiClient.get<Estado[]>(API_CONFIG.ENDPOINTS.ESTADOS as string);
     return estados;
   } catch (error) {
     console.error('Error fetching estados:', error);
@@ -51,7 +51,7 @@ export async function getEstadoById(id: number): Promise<Estado | null> {
   
   try {
     const estado = await apiClient.get<Estado>(
-      API_CONFIG.ENDPOINTS.ESTADO_BY_ID(id)
+      (API_CONFIG.ENDPOINTS.ESTADO_BY_ID as (id: number) => string)(id)
     );
     return estado;
   } catch (error) {
@@ -78,7 +78,7 @@ export async function createEstado(data: {
   
   try {
     const estado = await apiClient.post<Estado>(
-      API_CONFIG.ENDPOINTS.ESTADOS,
+      API_CONFIG.ENDPOINTS.ESTADOS as string,
       data
     );
     return estado;
@@ -101,7 +101,7 @@ export async function updateEstado(
   
   try {
     const estado = await apiClient.patch<Estado>(
-      API_CONFIG.ENDPOINTS.ESTADO_BY_ID(id),
+      (API_CONFIG.ENDPOINTS.ESTADO_BY_ID as (id: number) => string)(id),
       data
     );
     return estado;
@@ -118,7 +118,7 @@ export async function deleteEstado(id: number): Promise<boolean> {
   if (!useRealApi()) return true;
   
   try {
-    await apiClient.delete(API_CONFIG.ENDPOINTS.ESTADO_BY_ID(id));
+    await apiClient.delete((API_CONFIG.ENDPOINTS.ESTADO_BY_ID as (id: number) => string)(id));
     return true;
   } catch (error) {
     console.error('Error deleting estado:', error);
@@ -144,7 +144,7 @@ export async function getEstadosStats(): Promise<EstadoStats> {
   
   try {
     const stats = await apiClient.get<EstadoStats>(
-      API_CONFIG.ENDPOINTS.ESTADOS_STATS
+      API_CONFIG.ENDPOINTS.ESTADOS_STATS as string
     );
     return stats;
   } catch (error) {
@@ -161,7 +161,7 @@ export async function getPostsByEstado(estadoNombre: string): Promise<any[]> {
   
   try {
     const posts = await apiClient.get<any[]>(
-      API_CONFIG.ENDPOINTS.ESTADOS_POSTS_BY_NAME(estadoNombre)
+      (API_CONFIG.ENDPOINTS.ESTADOS_POSTS_BY_NAME as (nombre: string) => string)(estadoNombre)
     );
     return posts;
   } catch (error) {

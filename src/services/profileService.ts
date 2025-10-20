@@ -23,7 +23,7 @@ async function getProfileApi(userId: number): Promise<UserProfile | null> {
   try {
     // Usar endpoint de users ya que profiles no existe en el backend
     const user = await apiClient.get<any>(
-      API_CONFIG.ENDPOINTS.USER_BY_ID(userId)
+      (API_CONFIG.ENDPOINTS.USER_BY_ID as (id: number) => string)(userId)
     );
     
     // Transformar respuesta del backend al formato UserProfile del frontend
@@ -108,7 +108,7 @@ async function updateProfileApi(userId: number, updates: Partial<UserProfile>): 
     if (updates.socialLinks) backendUpdates.socialLinks = updates.socialLinks;
     
     const user = await apiClient.patch<any>(
-      API_CONFIG.ENDPOINTS.USER_BY_ID(userId),
+      (API_CONFIG.ENDPOINTS.USER_BY_ID as (id: number) => string)(userId),
       backendUpdates
     );
     
@@ -157,7 +157,7 @@ async function uploadAvatarApi(userId: number, imageFile: File): Promise<{ avata
     
     // Actualizar el usuario con la nueva URL del avatar
     await apiClient.patch(
-      API_CONFIG.ENDPOINTS.USER_BY_ID(userId),
+      (API_CONFIG.ENDPOINTS.USER_BY_ID as (id: number) => string)(userId),
       { avatar: avatarUrl }
     );
     
@@ -187,7 +187,7 @@ async function uploadCoverApi(userId: number, imageFile: File): Promise<{ coverU
     
     // Actualizar el usuario con la nueva URL del cover
     await apiClient.patch(
-      API_CONFIG.ENDPOINTS.USER_BY_ID(userId),
+      (API_CONFIG.ENDPOINTS.USER_BY_ID as (id: number) => string)(userId),
       { coverImage: coverUrl }
     );
     

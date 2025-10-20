@@ -44,7 +44,7 @@ async function deleteUserMock(userId: number): Promise<boolean> {
 
 async function getAllUsersApi(): Promise<User[]> {
   try {
-    const users = await apiClient.get<User[]>(API_CONFIG.ENDPOINTS.USERS);
+    const users = await apiClient.get<User[]>(API_CONFIG.ENDPOINTS.USERS as string);
     return users;
   } catch (error) {
     console.error('Error fetching users from API:', error);
@@ -66,7 +66,7 @@ async function changeUserRoleApi(userId: number, newRole: Role): Promise<User | 
     };
     
     const user = await apiClient.patch<User>(
-      API_CONFIG.ENDPOINTS.CHANGE_USER_ROLE(userId),
+      (API_CONFIG.ENDPOINTS.CHANGE_USER_ROLE as (id: number) => string)(userId),
       { rolId: roleIdMap[newRole] || 5 } // Default: autor
     );
     return user;
@@ -82,7 +82,7 @@ async function updateUserStatusApi(
 ): Promise<User | null> {
   try {
     const user = await apiClient.patch<User>(
-      API_CONFIG.ENDPOINTS.UPDATE_USER_STATUS(userId),
+      (API_CONFIG.ENDPOINTS.UPDATE_USER_STATUS as (id: number) => string)(userId),
       { status: newStatus }
     );
     return user;
@@ -94,7 +94,7 @@ async function updateUserStatusApi(
 
 async function deleteUserApi(userId: number): Promise<boolean> {
   try {
-    await apiClient.delete(API_CONFIG.ENDPOINTS.USER_BY_ID(userId));
+    await apiClient.delete((API_CONFIG.ENDPOINTS.USER_BY_ID as (id: number) => string)(userId));
     return true;
   } catch (error) {
     console.error('Error deleting user via API:', error);

@@ -1,11 +1,128 @@
 import { mockPosts, type Post } from '../data/mockPosts';
 import { useRealApi, API_CONFIG } from '../config/api';
 import { apiClient } from '../lib/apiClient';
+import type { PostBackend } from '../types';
 
 // In-memory store for mockup purposes
 let postsStore: Post[] = [...mockPosts];
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+// ==================== TRANSFORMERS ====================
+
+/**
+ * Mapea estado_id del backend a status del frontend
+ */
+function mapEstadoIdToStatus(estadoId: number): Post['status'] {
+  const statusMap: Record<number, Post['status']> = {
+    1: 'draft',      // Borrador
+    2: 'published',  // Publicado
+    3: 'pending',    // Pendiente
+    4: 'rejected'    // Archivado/Rechazado
+  };
+  return statusMap[estadoId] || 'draft';
+}
+
+/**
+ * Mapea status del frontend a estado_id del backend
+ */
+function mapStatusToEstadoId(status: Post['status']): number {
+  const estadoMap: Record<Post['status'], number> = {
+    'draft': 1,
+    'published': 2,
+    'pending': 3,
+    'rejected': 4
+  };
+  return estadoMap[status] || 1;
+}
+
+/**
+ * Transforma un post del backend (snake_case) al formato del frontend (camelCase)
+ */
+function transformPostFromBackend(backendPost: PostBackend): Post {
+  // Crear objeto author usando datos del backend si están disponibles, o valores por defecto
+  const author = backendPost.author ? {
+    id: backendPost.author.id,
+    name: backendPost.author.name,
+    avatar: backendPost.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(backendPost.author.name)}&background=3B82F6&color=fff`
+  } : {
+    id: backendPost.usuario_id,
+    name: `Usuario ${backendPost.usuario_id}`,
+    avatar: `https://ui-avatars.com/api/?name=Usuario+${backendPost.usuario_id}&background=3B82F6&color=fff`
+  };
+
+  return {
+    id: backendPost.id,
+    title: backendPost.titulo,
+    slug: backendPost.slug,
+    content: backendPost.contenido,
+    excerpt: backendPost.extracto,
+    status: mapEstadoIdToStatus(backendPost.estado_id),
+    authorId: backendPost.usuario_id,
+    author: author, // Siempre incluir el objeto author
+    estadoId: backendPost.estado_id,
+    featuredImage: backendPost.imagen_destacada,
+    publishedAt: backendPost.fecha_publicacion,
+    createdAt: backendPost.created_at,
+    updatedAt: backendPost.updated_at,
+    readTime: backendPost.tiempo_lectura,
+    views: backendPost.views,
+    likes: backendPost.likes,
+    comments: backendPost.comments_count,
+    shares: backendPost.shares,
+    featured: backendPost.featured,
+    allowComments: backendPost.allow_comments,
+    isPinned: backendPost.is_pinned,
+    categories: backendPost.categorias,
+    keywords: backendPost.keywords,
+    // Transformar categorías al formato legacy si existe la primera
+    categoryId: backendPost.categorias?.[0]?.id,
+    category: backendPost.categorias?.[0] ? {
+      id: backendPost.categorias[0].id,
+      name: backendPost.categorias[0].nombre,
+      slug: backendPost.categorias[0].slug,
+      color: backendPost.categorias[0].color
+    } : undefined,
+    // Transformar keywords a tags
+    tags: backendPost.keywords?.map(k => k.keyword) || [],
+    // Transformar SEO
+    seo: backendPost.seo ? {
+      metaTitle: backendPost.seo.meta_title,
+      metaDescription: backendPost.seo.meta_description,
+      focusKeyword: backendPost.seo.focus_keyword,
+      readabilityScore: backendPost.seo.readabilityScore
+    } : undefined,
+    // Transformar Editorial
+    editorial: backendPost.editorial ? {
+      reviewedAt: backendPost.editorial.review_date,
+      reviewerId: backendPost.editorial.reviewer_id,
+      reviewNotes: backendPost.editorial.review_notes
+    } : undefined
+  };
+}
+
+/**
+ * Transforma un post del frontend (camelCase) al formato del backend (snake_case)
+ */
+function transformPostToBackend(post: Partial<Post>): Partial<PostBackend> {
+  const backendData: any = {};
+  
+  if (post.title !== undefined) backendData.titulo = post.title;
+  if (post.slug !== undefined) backendData.slug = post.slug;
+  if (post.content !== undefined) backendData.contenido = post.content;
+  if (post.excerpt !== undefined) backendData.extracto = post.excerpt;
+  if (post.featuredImage !== undefined) backendData.imagen_destacada = post.featuredImage;
+  if (post.authorId !== undefined) backendData.usuario_id = post.authorId;
+  if (post.status !== undefined) backendData.estado_id = mapStatusToEstadoId(post.status);
+  if (post.estadoId !== undefined) backendData.estado_id = post.estadoId;
+  if (post.publishedAt !== undefined) backendData.fecha_publicacion = post.publishedAt;
+  if (post.readTime !== undefined) backendData.tiempo_lectura = post.readTime;
+  if (post.featured !== undefined) backendData.featured = post.featured;
+  if (post.allowComments !== undefined) backendData.allow_comments = post.allowComments;
+  if (post.isPinned !== undefined) backendData.is_pinned = post.isPinned;
+  
+  return backendData;
+}
 
 // ==================== MOCK DATA LAYER ====================
 
@@ -49,8 +166,8 @@ async function bulkActionMock(
 
 async function getAllPostsApi(): Promise<Post[]> {
   try {
-    const posts = await apiClient.get<Post[]>(API_CONFIG.ENDPOINTS.POSTS);
-    return posts;
+    const backendPosts = await apiClient.get<PostBackend[]>(API_CONFIG.ENDPOINTS.POSTS as string);
+    return backendPosts.map(transformPostFromBackend);
   } catch (error) {
     console.error('Error fetching posts from API:', error);
     return [];
@@ -63,7 +180,7 @@ async function updatePostStatusApi(
 ): Promise<Post | null> {
   try {
     const post = await apiClient.patch<Post>(
-      API_CONFIG.ENDPOINTS.UPDATE_POST_STATUS(postId),
+      (API_CONFIG.ENDPOINTS.UPDATE_POST_STATUS as (id: string | number) => string)(postId),
       { status: newStatus }
     );
     return post;
@@ -75,7 +192,7 @@ async function updatePostStatusApi(
 
 async function deletePostApi(postId: number): Promise<boolean> {
   try {
-    await apiClient.delete(API_CONFIG.ENDPOINTS.POST_BY_ID(postId));
+    await apiClient.delete((API_CONFIG.ENDPOINTS.POST_BY_ID as (id: string | number) => string)(postId));
     return true;
   } catch (error) {
     console.error('Error deleting post via API:', error);
@@ -88,7 +205,7 @@ async function bulkActionApi(
   action: 'publish' | 'draft' | 'delete'
 ): Promise<void> {
   try {
-    await apiClient.post(`${API_CONFIG.ENDPOINTS.POSTS}/bulk`, {
+    await apiClient.post(`${API_CONFIG.ENDPOINTS.POSTS as string}/bulk`, {
       ids,
       action
     });
@@ -137,7 +254,7 @@ export async function getPostsCompletos(limit: number = 20): Promise<Post[]> {
   
   try {
     const posts = await apiClient.get<Post[]>(
-      `${API_CONFIG.ENDPOINTS.POSTS_COMPLETOS}?limit=${limit}`
+      `${API_CONFIG.ENDPOINTS.POSTS_COMPLETOS as string}?limit=${limit}`
     );
     return posts;
   } catch (error) {
@@ -159,7 +276,7 @@ export async function getPostsPopulares(limit: number = 10): Promise<Post[]> {
   
   try {
     const posts = await apiClient.get<Post[]>(
-      `${API_CONFIG.ENDPOINTS.POSTS_POPULARES}?limit=${limit}`
+      `${API_CONFIG.ENDPOINTS.POSTS_POPULARES as string}?limit=${limit}`
     );
     return posts;
   } catch (error) {
@@ -176,7 +293,7 @@ export async function getPostsTrending(limit: number = 10): Promise<Post[]> {
   
   try {
     const posts = await apiClient.get<Post[]>(
-      `${API_CONFIG.ENDPOINTS.POSTS_TRENDING}?limit=${limit}`
+      `${API_CONFIG.ENDPOINTS.POSTS_TRENDING as string}?limit=${limit}`
     );
     return posts;
   } catch (error) {
@@ -193,7 +310,7 @@ export async function getPostsConEngagement(limit: number = 20): Promise<Post[]>
   
   try {
     const posts = await apiClient.get<Post[]>(
-      `${API_CONFIG.ENDPOINTS.POSTS_ENGAGEMENT}?limit=${limit}`
+      `${API_CONFIG.ENDPOINTS.POSTS_ENGAGEMENT as string}?limit=${limit}`
     );
     return posts;
   } catch (error) {
@@ -212,7 +329,7 @@ export async function getPostsSinComentarios(): Promise<Post[]> {
   
   try {
     const posts = await apiClient.get<Post[]>(
-      API_CONFIG.ENDPOINTS.POSTS_SIN_COMENTARIOS
+      API_CONFIG.ENDPOINTS.POSTS_SIN_COMENTARIOS as string
     );
     return posts;
   } catch (error) {
@@ -229,7 +346,7 @@ export async function getPostsMasCompartidos(limit: number = 10): Promise<Post[]
   
   try {
     const posts = await apiClient.get<Post[]>(
-      `${API_CONFIG.ENDPOINTS.POSTS_MAS_COMPARTIDOS}?limit=${limit}`
+      `${API_CONFIG.ENDPOINTS.POSTS_MAS_COMPARTIDOS as string}?limit=${limit}`
     );
     return posts;
   } catch (error) {
@@ -248,7 +365,7 @@ export async function getBorradoresAntiguos(): Promise<Post[]> {
   
   try {
     const posts = await apiClient.get<Post[]>(
-      API_CONFIG.ENDPOINTS.POSTS_BORRADORES_ANTIGUOS
+      API_CONFIG.ENDPOINTS.POSTS_BORRADORES_ANTIGUOS as string
     );
     return posts;
   } catch (error) {
@@ -265,7 +382,7 @@ export async function getEstadisticasPorMes(meses: number = 12): Promise<any> {
   
   try {
     const stats = await apiClient.get(
-      `${API_CONFIG.ENDPOINTS.POSTS_STATS_POR_MES}?meses=${meses}`
+      `${API_CONFIG.ENDPOINTS.POSTS_STATS_POR_MES as string}?meses=${meses}`
     );
     return stats;
   } catch (error) {
@@ -287,7 +404,7 @@ export async function getMejorRendimientoPorAutor(
   
   try {
     const posts = await apiClient.get<Post[]>(
-      `${API_CONFIG.ENDPOINTS.POSTS_STATS_MEJOR_RENDIMIENTO(autorId)}?limit=${limit}`
+      `${(API_CONFIG.ENDPOINTS.POSTS_STATS_MEJOR_RENDIMIENTO as (id: number) => string)(autorId)}?limit=${limit}`
     );
     return posts;
   } catch (error) {
@@ -311,7 +428,7 @@ export async function getDashboardOverview(): Promise<any> {
   
   try {
     const overview = await apiClient.get(
-      API_CONFIG.ENDPOINTS.POSTS_STATS_DASHBOARD
+      API_CONFIG.ENDPOINTS.POSTS_STATS_DASHBOARD as string
     );
     return overview;
   } catch (error) {
@@ -342,7 +459,7 @@ export async function incrementarVista(
   
   try {
     await apiClient.post(
-      API_CONFIG.ENDPOINTS.POST_INCREMENT_VISTA(postId),
+      (API_CONFIG.ENDPOINTS.POST_INCREMENT_VISTA as (id: number) => string)(postId),
       { userId, ipAddress }
     );
     return true;
@@ -370,7 +487,7 @@ export async function darLike(postId: number, userId: number): Promise<boolean> 
   
   try {
     await apiClient.post(
-      API_CONFIG.ENDPOINTS.POST_LIKE(postId),
+      (API_CONFIG.ENDPOINTS.POST_LIKE as (id: number) => string)(postId),
       { userId }
     );
     return true;
@@ -398,7 +515,7 @@ export async function quitarLike(postId: number, userId: number): Promise<boolea
   
   try {
     await apiClient.delete(
-      API_CONFIG.ENDPOINTS.POST_LIKE(postId),
+      (API_CONFIG.ENDPOINTS.POST_LIKE as (id: number) => string)(postId),
       { body: JSON.stringify({ userId }) } as any
     );
     return true;
@@ -419,7 +536,7 @@ export async function addCategoriasToPost(
   
   try {
     await apiClient.post(
-      API_CONFIG.ENDPOINTS.POST_ADD_CATEGORIAS(postId),
+      (API_CONFIG.ENDPOINTS.POST_ADD_CATEGORIAS as (id: number) => string)(postId),
       { categoria_ids: categoriaIds }
     );
     return true;
@@ -440,7 +557,7 @@ export async function addKeywordsToPost(
   
   try {
     await apiClient.post(
-      API_CONFIG.ENDPOINTS.POST_KEYWORDS(postId),
+      (API_CONFIG.ENDPOINTS.POST_KEYWORDS as (id: number) => string)(postId),
       { keywordIds }
     );
     return true;
@@ -461,7 +578,7 @@ export async function createAndAddKeywords(
   
   try {
     await apiClient.post(
-      API_CONFIG.ENDPOINTS.POST_KEYWORDS_CREATE(postId),
+      (API_CONFIG.ENDPOINTS.POST_KEYWORDS_CREATE as (id: number) => string)(postId),
       { keywords }
     );
     return true;
@@ -479,7 +596,7 @@ export async function getPostKeywords(postId: number): Promise<any[]> {
   
   try {
     const keywords = await apiClient.get(
-      API_CONFIG.ENDPOINTS.POST_KEYWORDS(postId)
+      (API_CONFIG.ENDPOINTS.POST_KEYWORDS as (id: number) => string)(postId)
     );
     return keywords as any[];
   } catch (error) {
@@ -499,7 +616,7 @@ export async function removeKeywordsFromPost(
   
   try {
     await apiClient.delete(
-      API_CONFIG.ENDPOINTS.POST_KEYWORDS(postId),
+      (API_CONFIG.ENDPOINTS.POST_KEYWORDS as (id: number) => string)(postId),
       { body: JSON.stringify({ keywordIds }) } as any
     );
     return true;
@@ -517,7 +634,7 @@ export async function findOrCreateKeyword(keyword: string): Promise<any> {
   
   try {
     const result = await apiClient.post(
-      API_CONFIG.ENDPOINTS.KEYWORDS_FIND_OR_CREATE,
+      API_CONFIG.ENDPOINTS.KEYWORDS_FIND_OR_CREATE as string,
       { keyword }
     );
     return result;
@@ -535,7 +652,7 @@ export async function getKeywordsMasUsadas(limit: number = 50): Promise<any[]> {
   
   try {
     const keywords = await apiClient.get(
-      `${API_CONFIG.ENDPOINTS.KEYWORDS_MAS_USADAS}?limit=${limit}`
+      `${API_CONFIG.ENDPOINTS.KEYWORDS_MAS_USADAS as string}?limit=${limit}`
     );
     return keywords as any[];
   } catch (error) {

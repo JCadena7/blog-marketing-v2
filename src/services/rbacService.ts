@@ -41,7 +41,7 @@ export async function getAllRoles(): Promise<Rol[]> {
   }
   
   try {
-    const roles = await apiClient.get<Rol[]>(API_CONFIG.ENDPOINTS.RBAC_ROLES);
+    const roles = await apiClient.get<Rol[]>(API_CONFIG.ENDPOINTS.RBAC_ROLES as string);
     return roles;
   } catch (error) {
     console.error('Error fetching roles:', error);
@@ -67,7 +67,7 @@ export async function createRol(data: {
   
   try {
     const rol = await apiClient.post<Rol>(
-      API_CONFIG.ENDPOINTS.RBAC_ROLES,
+      API_CONFIG.ENDPOINTS.RBAC_ROLES as string,
       data
     );
     return rol;
@@ -84,7 +84,7 @@ export async function deleteRol(id: number): Promise<boolean> {
   if (!useRealApi()) return true;
   
   try {
-    await apiClient.delete(API_CONFIG.ENDPOINTS.RBAC_ROLE_BY_ID(id));
+    await apiClient.delete((API_CONFIG.ENDPOINTS.RBAC_ROLE_BY_ID as (id: number) => string)(id));
     return true;
   } catch (error) {
     console.error('Error deleting rol:', error);
@@ -99,7 +99,7 @@ export async function deleteRoles(ids: number[]): Promise<boolean> {
   if (!useRealApi()) return true;
   
   try {
-    await apiClient.delete(API_CONFIG.ENDPOINTS.RBAC_ROLES, {
+    await apiClient.delete(API_CONFIG.ENDPOINTS.RBAC_ROLES as string, {
       body: JSON.stringify({ ids })
     } as any);
     return true;
@@ -129,7 +129,7 @@ export async function getAllPermisos(): Promise<Permiso[]> {
   
   try {
     const permisos = await apiClient.get<Permiso[]>(
-      API_CONFIG.ENDPOINTS.RBAC_PERMISOS
+      API_CONFIG.ENDPOINTS.RBAC_PERMISOS as string
     );
     return permisos;
   } catch (error) {
@@ -156,7 +156,7 @@ export async function createPermiso(data: {
   
   try {
     const permiso = await apiClient.post<Permiso>(
-      API_CONFIG.ENDPOINTS.RBAC_PERMISOS,
+      API_CONFIG.ENDPOINTS.RBAC_PERMISOS as string,
       data
     );
     return permiso;
@@ -173,7 +173,7 @@ export async function deletePermiso(id: number): Promise<boolean> {
   if (!useRealApi()) return true;
   
   try {
-    await apiClient.delete(API_CONFIG.ENDPOINTS.RBAC_PERMISO_BY_ID(id));
+    await apiClient.delete((API_CONFIG.ENDPOINTS.RBAC_PERMISO_BY_ID as (id: number) => string)(id));
     return true;
   } catch (error) {
     console.error('Error deleting permiso:', error);
@@ -188,7 +188,7 @@ export async function deletePermisos(ids: number[]): Promise<boolean> {
   if (!useRealApi()) return true;
   
   try {
-    await apiClient.delete(API_CONFIG.ENDPOINTS.RBAC_PERMISOS, {
+    await apiClient.delete(API_CONFIG.ENDPOINTS.RBAC_PERMISOS as string, {
       body: JSON.stringify({ ids })
     } as any);
     return true;
@@ -208,7 +208,7 @@ export async function getPermisosByRole(): Promise<any> {
   
   try {
     const data = await apiClient.get(
-      API_CONFIG.ENDPOINTS.RBAC_PERMISOS_BY_ROLE
+      API_CONFIG.ENDPOINTS.RBAC_PERMISOS_BY_ROLE as string
     );
     return data;
   } catch (error) {
@@ -228,7 +228,7 @@ export async function assignPermisoToRole(
   
   try {
     await apiClient.post(
-      API_CONFIG.ENDPOINTS.RBAC_ASSIGN_PERMISO(rolId),
+      (API_CONFIG.ENDPOINTS.RBAC_ASSIGN_PERMISO as (id: number) => string)(rolId),
       { permisoId }
     );
     return true;
@@ -249,7 +249,7 @@ export async function revokePermisoFromRole(
   
   try {
     await apiClient.delete(
-      API_CONFIG.ENDPOINTS.RBAC_REVOKE_PERMISO(roleId, permisoId)
+      (API_CONFIG.ENDPOINTS.RBAC_REVOKE_PERMISO as (roleId: number, permisoId: number) => string)(roleId, permisoId)
     );
     return true;
   } catch (error) {
@@ -269,7 +269,7 @@ export async function revokeManyPermisosFromRole(
   
   try {
     await apiClient.delete(
-      API_CONFIG.ENDPOINTS.RBAC_REVOKE_MANY_PERMISOS(rolId),
+      (API_CONFIG.ENDPOINTS.RBAC_REVOKE_MANY_PERMISOS as (id: number) => string)(rolId),
       { body: JSON.stringify({ permisoIds }) } as any
     );
     return true;
