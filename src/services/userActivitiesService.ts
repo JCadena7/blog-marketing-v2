@@ -17,9 +17,9 @@ export interface UserActivity {
   type: ActivityType;
   description: string;
   target?: string;
-  content?: string;
-  metadata?: Record<string, any>;
-  created_at?: string;
+  content?: string | null;
+  metadata?: Record<string, any> | null;
+  createdAt?: string; // Backend usa createdAt, no created_at
 }
 
 export interface ActivityFilters {
@@ -42,42 +42,22 @@ export interface ActivitiesResponse {
 // ==================== API LAYER ====================
 
 /**
- * Obtener todas las actividades (con filtros opcionales)
+ * Obtener todas las actividades (sin filtros - todas las actividades de todos los usuarios)
  */
-export async function getAllActivities(
-  filters?: ActivityFilters
-): Promise<ActivitiesResponse> {
+export async function getAllActivities(): Promise<UserActivity[]> {
   if (!useRealApi()) {
-    return {
-      data: [],
-      total: 0,
-      page: 1,
-      limit: 20,
-      totalPages: 0
-    };
+    return [];
   }
   
   try {
-    const queryParams = new URLSearchParams();
-    if (filters?.userId) queryParams.append('userId', filters.userId.toString());
-    if (filters?.type) queryParams.append('type', filters.type);
-    if (filters?.startDate) queryParams.append('startDate', filters.startDate);
-    if (filters?.endDate) queryParams.append('endDate', filters.endDate);
-    if (filters?.page) queryParams.append('page', filters.page.toString());
-    if (filters?.limit) queryParams.append('limit', filters.limit.toString());
-    
-    const url = `${API_CONFIG.ENDPOINTS.USER_ACTIVITIES}?${queryParams.toString()}`;
-    const response = await apiClient.get<ActivitiesResponse>(url);
-    return response;
+    console.log('🔄 Obteniendo todas las actividades del backend...');
+    const url = API_CONFIG.ENDPOINTS.USER_ACTIVITIES as string;
+    const activities = await apiClient.get<UserActivity[]>(url);
+    console.log(`✅ ${activities.length} actividades obtenidas`);
+    return activities;
   } catch (error) {
-    console.error('Error fetching user activities:', error);
-    return {
-      data: [],
-      total: 0,
-      page: 1,
-      limit: 20,
-      totalPages: 0
-    };
+    console.error('❌ Error fetching user activities:', error);
+    return [];
   }
 }
 
@@ -103,38 +83,40 @@ export async function getActivityById(id: string): Promise<UserActivity | null> 
  */
 export async function getActivitiesByUser(
   userId: number,
-  filters?: Omit<ActivityFilters, 'userId'>
-): Promise<ActivitiesResponse> {
+  limit?: number
+): Promise<UserActivity[]> {
   if (!useRealApi()) {
-    return {
-      data: [],
-      total: 0,
-      page: 1,
-      limit: 20,
-      totalPages: 0
-    };
+    return [];
   }
   
   try {
-    const queryParams = new URLSearchParams();
-    if (filters?.type) queryParams.append('type', filters.type);
-    if (filters?.startDate) queryParams.append('startDate', filters.startDate);
-    if (filters?.endDate) queryParams.append('endDate', filters.endDate);
-    if (filters?.page) queryParams.append('page', filters.page.toString());
-    if (filters?.limit) queryParams.append('limit', filters.limit.toString());
+    console.log(`🔄 Obteniendo actividades del usuario ${userId}...`);
+    // Obtener todas las actividades y filtrar por userId
+    const allActivities = await getAllActivities();
+    console.log(`📊 Total de actividades en el sistema: ${allActivities.length}`);
+    console.log(`🔍 Filtrando por userId: ${userId}`);
     
-    const url = `${(API_CONFIG.ENDPOINTS.USER_ACTIVITIES_BY_USER as (id: number) => string)(userId)}?${queryParams.toString()}`;
-    const response = await apiClient.get<ActivitiesResponse>(url);
-    return response;
+    const userActivities = allActivities
+      .filter(activity => {
+        const matches = activity.userId === userId;
+        if (!matches && allActivities.length < 5) {
+          console.log(`❌ Actividad ${activity.id} no coincide: userId=${activity.userId} vs ${userId}`);
+        }
+        return matches;
+      })
+      .slice(0, limit || 10); // Limitar a 10 por defecto
+    
+    console.log(`✅ ${userActivities.length} actividades del usuario ${userId}`);
+    
+    if (userActivities.length === 0 && allActivities.length > 0) {
+      console.warn(`⚠️ No se encontraron actividades para el usuario ${userId}`);
+      console.log(`📋 UserIds disponibles:`, [...new Set(allActivities.map(a => a.userId))]);
+    }
+    
+    return userActivities;
   } catch (error) {
-    console.error('Error fetching user activities:', error);
-    return {
-      data: [],
-      total: 0,
-      page: 1,
-      limit: 20,
-      totalPages: 0
-    };
+    console.error('❌ Error fetching user activities:', error);
+    return [];
   }
 }
 
@@ -153,7 +135,7 @@ export async function createActivity(data: {
     return {
       id: Date.now().toString(),
       ...data,
-      created_at: new Date().toISOString()
+      createdAt: new Date().toISOString()
     };
   }
   
@@ -315,8 +297,7 @@ export async function logLikeGiven(
  * Obtener actividades recientes de un usuario (últimas 10)
  */
 export async function getRecentActivities(userId: number): Promise<UserActivity[]> {
-  const response = await getActivitiesByUser(userId, { limit: 10, page: 1 });
-  return response.data;
+  return await getActivitiesByUser(userId, 10);
 }
 
 /**
@@ -326,8 +307,10 @@ export async function getActivitiesByType(
   type: ActivityType,
   limit: number = 20
 ): Promise<UserActivity[]> {
-  const response = await getAllActivities({ type, limit, page: 1 });
-  return response.data;
+  const allActivities = await getAllActivities();
+  return allActivities
+    .filter(activity => activity.type === type)
+    .slice(0, limit);
 }
 
 /**
@@ -338,12 +321,15 @@ export async function getActivitiesByDateRange(
   endDate: string,
   userId?: number
 ): Promise<UserActivity[]> {
-  const response = await getAllActivities({
-    userId,
-    startDate,
-    endDate,
-    limit: 100,
-    page: 1
+  const allActivities = await getAllActivities();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  return allActivities.filter(activity => {
+    if (userId && activity.userId !== userId) return false;
+    if (!activity.createdAt) return false;
+    
+    const activityDate = new Date(activity.createdAt);
+    return activityDate >= start && activityDate <= end;
   });
-  return response.data;
 }

@@ -29,11 +29,11 @@ async function getProfileApi(userId: number): Promise<UserProfile | null> {
     // Transformar respuesta del backend al formato UserProfile del frontend
     const profile: UserProfile = {
       id: user.id,
-      username: user.nombre || user.username || `user${user.id}`,
+      username: user.username || `user${user.id}`,
       email: user.email,
-      firstName: user.nombre?.split(' ')[0] || '',
-      lastName: user.nombre?.split(' ').slice(1).join(' ') || '',
-      avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.nombre || 'User')}&background=3B82F6&color=fff`,
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName || 'User')}&background=3B82F6&color=fff`,
       coverImage: user.coverImage || '',
       bio: user.bio || '',
       location: user.location || '',

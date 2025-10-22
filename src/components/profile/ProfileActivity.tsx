@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, FileText, MessageCircle, User, Heart, UserPlus, ListFilter as Filter, Calendar, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { getProfileActivity } from '../../services/profileService';
+import { getActivitiesByUser, type UserActivity } from '../../services/userActivitiesService';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 
@@ -12,41 +12,64 @@ interface ProfileActivityProps {
 }
 
 const ProfileActivity: React.FC<ProfileActivityProps> = ({ userId }) => {
-  const [activities, setActivities] = useState<any[]>([]);
+  console.log('🎯 ProfileActivity montado con userId:', userId);
+  
+  const [activities, setActivities] = useState<UserActivity[]>([]);
+  const [allActivities, setAllActivities] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [displayCount, setDisplayCount] = useState(20);
 
   useEffect(() => {
+    console.log('🔄 useEffect disparado - userId:', userId, 'filter:', filter);
     loadActivities(true);
   }, [userId, filter]);
 
   const loadActivities = async (reset = false) => {
     try {
       setLoading(true);
-      const currentPage = reset ? 1 : page;
+      console.log(`📊 Cargando actividades del usuario ${userId}...`);
+      console.log(`🔍 Filtro actual: ${filter}`);
       
-      const result = await getProfileActivity(userId, {
-        page: currentPage,
-        limit: 20,
-        type: filter === 'all' ? undefined : filter
-      });
+      // Obtener todas las actividades del usuario
+      let userActivities = await getActivitiesByUser(userId, 100);
+      console.log(`📦 Actividades recibidas del backend:`, userActivities);
+      console.log(`📊 Total de actividades: ${userActivities.length}`);
       
-      if (reset) {
-        setActivities(result.activities);
-        setPage(1);
-      } else {
-        setActivities(prev => [...prev, ...result.activities]);
+      // Filtrar por tipo si es necesario
+      if (filter !== 'all') {
+        const beforeFilter = userActivities.length;
+        userActivities = userActivities.filter(activity => activity.type === filter);
+        console.log(`🔍 Filtradas de ${beforeFilter} a ${userActivities.length} (tipo: ${filter})`);
       }
       
-      setHasMore(currentPage < result.totalPages);
-      if (!reset) setPage(currentPage + 1);
+      setAllActivities(userActivities);
       
+      if (reset) {
+        setDisplayCount(20);
+        setActivities(userActivities.slice(0, 20));
+        console.log(`✅ Mostrando las primeras 20 de ${userActivities.length} actividades`);
+      } else {
+        setActivities(userActivities.slice(0, displayCount));
+        console.log(`✅ Mostrando ${Math.min(displayCount, userActivities.length)} de ${userActivities.length} actividades`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error cargando actividades:', error);
+      setActivities([]);
+      setAllActivities([]);
     } finally {
       setLoading(false);
     }
   };
+
+  const loadMore = () => {
+    const newCount = displayCount + 20;
+    setDisplayCount(newCount);
+    setActivities(allActivities.slice(0, newCount));
+  };
+
+  const hasMore = allActivities.length > displayCount;
 
   const activityTypes = {
     post_created: { icon: FileText, color: 'text-blue-500 bg-blue-100 dark:bg-blue-900/20', label: 'Post creado' },
@@ -57,7 +80,9 @@ const ProfileActivity: React.FC<ProfileActivityProps> = ({ userId }) => {
     like_given: { icon: Heart, color: 'text-red-500 bg-red-100 dark:bg-red-900/20', label: 'Le gustó' }
   };
 
-  const formatActivityTime = (dateString: string) => {
+  const formatActivityTime = (dateString?: string) => {
+    if (!dateString) return 'Fecha desconocida';
+    
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
@@ -202,7 +227,7 @@ const ProfileActivity: React.FC<ProfileActivityProps> = ({ userId }) => {
           <div className="text-center pt-6 border-t border-gray-200 dark:border-gray-700">
             <Button
               variant="outline"
-              onClick={() => loadActivities(false)}
+              onClick={loadMore}
               loading={loading}
             >
               Cargar más actividad

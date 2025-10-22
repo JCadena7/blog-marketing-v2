@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   MapPin, 
@@ -20,6 +20,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { type UserProfile } from '../../data/mockUserProfiles';
+import { getRecentActivities, type UserActivity } from '../../services/userActivitiesService';
 import Card from '../ui/Card';
 import RoleBadge from '../admin/RoleBadge';
 
@@ -29,6 +30,25 @@ interface ProfileOverviewProps {
 }
 
 const ProfileOverview: React.FC<ProfileOverviewProps> = ({ user, isOwnProfile }) => {
+  const [recentActivities, setRecentActivities] = useState<UserActivity[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+
+  useEffect(() => {
+    loadRecentActivities();
+  }, [user.id]);
+
+  const loadRecentActivities = async () => {
+    try {
+      setLoadingActivities(true);
+      const activities = await getRecentActivities(user.id);
+      setRecentActivities(activities);
+    } catch (error) {
+      console.error('Error cargando actividades recientes:', error);
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "d 'de' MMMM 'de' yyyy", { locale: es });
   };
@@ -134,39 +154,62 @@ const ProfileOverview: React.FC<ProfileOverviewProps> = ({ user, isOwnProfile })
             Actividad Reciente
           </h3>
           
-          <div className="space-y-3">
-            {user.activity.slice(0, 5).map((activity, index) => (
-              <motion.div
-                key={activity.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-start space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <div className="flex-shrink-0 mt-1">
-                  {getActivityIcon(activity.type)}
+          {loadingActivities ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="animate-pulse flex items-start space-x-3 p-3">
+                  <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900 dark:text-white">
-                    {activity.description}
-                    {activity.target && (
-                      <span className="font-medium text-primary-600 dark:text-primary-400">
-                        {' '}{activity.target}
-                      </span>
-                    )}
-                  </p>
-                  {activity.content && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      "{activity.content}"
+              ))}
+            </div>
+          ) : recentActivities.length === 0 ? (
+            <div className="text-center py-8">
+              <Activity size={32} className="mx-auto text-gray-400 mb-2" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                No hay actividad reciente
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentActivities.slice(0, 5).map((activity, index) => (
+                <motion.div
+                  key={activity.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="flex items-start space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <div className="flex-shrink-0 mt-1">
+                    {getActivityIcon(activity.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {activity.description}
+                      {activity.target && (
+                        <span className="font-medium text-primary-600 dark:text-primary-400">
+                          {' '}{activity.target}
+                        </span>
+                      )}
                     </p>
-                  )}
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {format(new Date(activity.createdAt), "d MMM 'a las' HH:mm", { locale: es })}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                    {activity.content && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                        "{activity.content.substring(0, 100)}{activity.content.length > 100 ? '...' : ''}"
+                      </p>
+                    )}
+                    {activity.createdAt && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {format(new Date(activity.createdAt), "d MMM 'a las' HH:mm", { locale: es })}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
