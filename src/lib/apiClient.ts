@@ -59,7 +59,7 @@ class ApiClient {
       
       // Get auth token and add to headers if available
       const token = this.getAuthToken();
-      console.log('Token:', token);
+      // console.log('Token:', token);
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -67,10 +67,10 @@ class ApiClient {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
         if (import.meta.env.DEV) {
-          console.log('🔐 Token incluido en petición:', token.substring(0, 20) + '...');
+          // console.log('🔐 Token incluido en petición:', token.substring(0, 20) + '...');
         }
       } else if (import.meta.env.DEV) {
-        console.log('⚠️ No hay token disponible para esta petición');
+        // console.log('⚠️ No hay token disponible para esta petición');
       }
       
       const response = await fetch(url, {

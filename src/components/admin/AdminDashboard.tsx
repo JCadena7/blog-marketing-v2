@@ -12,6 +12,7 @@ import ProtectedRoute from './ProtectedRoute';
 import { mockPosts, getPendingPosts } from '../../data/mockPosts';
 import { mockComments, getPendingComments } from '../../data/mockComments';
 import { mockUsers } from '../../data/mockUsers';
+import { createPost } from '../../services/postsService';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 
@@ -86,7 +87,7 @@ const AdminDashboard: React.FC = () => {
                           {post.title}
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {post.author.name} • {new Date(post.createdAt).toLocaleDateString()}
+                          {post.author?.name || 'Autor desconocido'} • {new Date(post.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -164,11 +165,26 @@ const AdminDashboard: React.FC = () => {
         onClose={() => setShowCreateWizard(false)}
         onSubmit={async (postData) => {
           try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const newPost = await createPost({
+              title: postData.title,
+              content: postData.content,
+              excerpt: postData.excerpt,
+              categoryId: postData.categoryId ? Number(postData.categoryId) : undefined,
+              tags: postData.tags,
+              featuredImage: postData.featuredImage,
+              status: postData.status === 'scheduled' ? 'pending' : postData.status as 'draft' | 'pending' | 'published',
+              featured: postData.featured,
+              allowComments: postData.allowComments,
+              seo: {
+                metaTitle: postData.metaTitle || postData.title,
+                metaDescription: postData.metaDescription || postData.excerpt,
+                focusKeyword: postData.focusKeyword
+              }
+            });
             addNotification({
               type: 'success',
               title: 'Post creado',
-              message: 'El post ha sido creado exitosamente desde el dashboard'
+              message: `El post "${newPost.title}" ha sido creado exitosamente.`
             });
             setShowCreateWizard(false);
           } catch (error) {

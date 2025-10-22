@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, FileText, Users, MessageCircle, Folder, X, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePermissions } from '../../hooks/usePermissions';
-import { mockPosts } from '../../data/mockPosts';
+import { mockPosts, type Post } from '../../data/mockPosts';
 import { mockUsers } from '../../data/mockUsers';
 import { mockComments } from '../../data/mockComments';
 import { mockCategories } from '../../data/mockCategories';
@@ -59,14 +59,14 @@ const AdminSearchGlobal: React.FC<AdminSearchGlobalProps> = ({ isOpen, onClose }
           post.content.toLowerCase().includes(query.toLowerCase())
         )
         .slice(0, 5)
-        .map(post => ({
+        .map((post: Post) => ({
           id: `post-${post.id}`,
           type: 'post' as const,
           title: post.title,
-          subtitle: `Por ${post.author.name}`,
+          subtitle: `Por ${post.author?.name || 'Autor desconocido'}`,
           url: `/admin/posts/${post.id}/edit`,
           icon: FileText,
-          meta: `${post.status} • ${post.category.name}`
+          meta: `${post.status} • ${post.category?.name || 'Sin categoría'}`
         }));
       searchResults.push(...postResults);
     }

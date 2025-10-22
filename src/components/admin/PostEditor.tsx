@@ -40,12 +40,12 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
         title: post.title,
         excerpt: post.excerpt,
         content: post.content,
-        categoryId: post.categoryId.toString(),
-        tags: post.tags,
+        categoryId: post.categoryId?.toString() || '',
+        tags: post.tags || [],
         featuredImage: post.featuredImage,
-        metaTitle: post.seo.metaTitle,
-        metaDescription: post.seo.metaDescription,
-        focusKeyword: post.seo.focusKeyword,
+        metaTitle: post.seo?.metaTitle || '',
+        metaDescription: post.seo?.metaDescription || '',
+        focusKeyword: post.seo?.focusKeyword || '',
         status: post.status
       });
     }

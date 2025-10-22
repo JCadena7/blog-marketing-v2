@@ -102,24 +102,97 @@ function transformPostFromBackend(backendPost: PostBackend): Post {
 }
 
 /**
+ * Obtiene el ID del usuario actual desde localStorage
+ */
+function getCurrentUserId(): number {
+  if (typeof window === 'undefined') return 3; // Valor por defecto en SSR
+  
+  try {
+    const userData = localStorage.getItem('user_data');
+    if (userData) {
+      const user = JSON.parse(userData);
+      return user.id || 3;
+    }
+  } catch (error) {
+    console.error('Error al obtener usuario actual:', error);
+  }
+  
+  return 3; // Valor por defecto si no hay usuario
+}
+
+/**
+ * Genera un slug a partir del título
+ */
+function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+    .replace(/[^a-z0-9\s-]/g, '') // Eliminar caracteres especiales
+    .trim()
+    .replace(/\s+/g, '-') // Reemplazar espacios con guiones
+    .replace(/-+/g, '-') // Eliminar guiones duplicados
+    .substring(0, 255); // Limitar a 255 caracteres
+}
+
+/**
  * Transforma un post del frontend (camelCase) al formato del backend (snake_case)
  */
 function transformPostToBackend(post: Partial<Post>): Partial<PostBackend> {
   const backendData: any = {};
   
+  // Campos requeridos
   if (post.title !== undefined) backendData.titulo = post.title;
-  if (post.slug !== undefined) backendData.slug = post.slug;
+  
+  // Generar slug automáticamente si no existe
+  if (post.slug !== undefined) {
+    backendData.slug = post.slug;
+  } else if (post.title !== undefined) {
+    backendData.slug = generateSlug(post.title);
+  }
+  
+  // usuario_id es requerido - obtener del usuario actual
+  if (post.authorId !== undefined) {
+    backendData.usuario_id = post.authorId;
+  } else {
+    backendData.usuario_id = getCurrentUserId(); // Obtener del localStorage
+  }
+  
+  // estado_id es requerido
+  if (post.status !== undefined) {
+    backendData.estado_id = mapStatusToEstadoId(post.status);
+  } else if (post.estadoId !== undefined) {
+    backendData.estado_id = post.estadoId;
+  } else {
+    backendData.estado_id = 1; // Draft por defecto
+  }
+  
+  // Campos opcionales
   if (post.content !== undefined) backendData.contenido = post.content;
   if (post.excerpt !== undefined) backendData.extracto = post.excerpt;
   if (post.featuredImage !== undefined) backendData.imagen_destacada = post.featuredImage;
-  if (post.authorId !== undefined) backendData.usuario_id = post.authorId;
-  if (post.status !== undefined) backendData.estado_id = mapStatusToEstadoId(post.status);
-  if (post.estadoId !== undefined) backendData.estado_id = post.estadoId;
   if (post.publishedAt !== undefined) backendData.fecha_publicacion = post.publishedAt;
   if (post.readTime !== undefined) backendData.tiempo_lectura = post.readTime;
-  if (post.featured !== undefined) backendData.featured = post.featured;
-  if (post.allowComments !== undefined) backendData.allow_comments = post.allowComments;
-  if (post.isPinned !== undefined) backendData.is_pinned = post.isPinned;
+  
+  // Categorías - el backend espera categoria_ids (array)
+  if (post.categoryId !== undefined) {
+    backendData.categoria_ids = [post.categoryId];
+  }
+  
+  // Tags - el backend espera new_keywords (array de strings)
+  if (post.tags !== undefined && post.tags.length > 0) {
+    backendData.new_keywords = post.tags;
+  }
+  
+  // Campos SEO - van directamente en el DTO, no anidados
+  if (post.seo) {
+    if (post.seo.metaTitle !== undefined) backendData.meta_title = post.seo.metaTitle;
+    if (post.seo.metaDescription !== undefined) backendData.meta_description = post.seo.metaDescription;
+    if (post.seo.focusKeyword !== undefined) backendData.focus_keyword = post.seo.focusKeyword;
+    if (post.seo.readabilityScore !== undefined) backendData.readabilityScore = post.seo.readabilityScore;
+  }
+  
+  // NO enviar featured, allowComments, isPinned - no existen en el backend DTO
   
   return backendData;
 }
@@ -215,6 +288,58 @@ async function bulkActionApi(
   }
 }
 
+async function createPostMock(postData: Partial<Post>): Promise<Post> {
+  await delay(500);
+  const newPost: Post = {
+    id: Date.now(),
+    title: postData.title || '',
+    slug: postData.slug || postData.title?.toLowerCase().replace(/\s+/g, '-') || '',
+    content: postData.content || '',
+    excerpt: postData.excerpt || '',
+    status: postData.status || 'draft',
+    authorId: postData.authorId || 3,
+    author: postData.author || {
+      id: 3,
+      name: 'Usuario Actual',
+      avatar: 'https://ui-avatars.com/api/?name=Usuario&background=3B82F6&color=fff'
+    },
+    categoryId: postData.categoryId,
+    category: postData.category,
+    tags: postData.tags || [],
+    featuredImage: postData.featuredImage || '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    readTime: postData.readTime || Math.ceil((postData.content?.split(' ').length || 0) / 200),
+    views: 0,
+    likes: 0,
+    comments: 0,
+    shares: 0,
+    featured: postData.featured || false,
+    allowComments: postData.allowComments !== false,
+    isPinned: postData.isPinned || false,
+    seo: postData.seo
+  };
+  postsStore.push(newPost);
+  return newPost;
+}
+
+async function createPostApi(postData: Partial<Post>): Promise<Post> {
+  try {
+    const backendData = transformPostToBackend(postData);
+    console.log('🔄 Datos transformados para el backend:', backendData);
+    console.log('👤 Usuario ID:', backendData.usuario_id);
+    
+    const backendPost = await apiClient.post<PostBackend>(
+      API_CONFIG.ENDPOINTS.POSTS as string,
+      backendData
+    );
+    return transformPostFromBackend(backendPost);
+  } catch (error) {
+    console.error('Error creating post via API:', error);
+    throw error;
+  }
+}
+
 // ==================== PUBLIC API (Auto-switches between mock and real API) ====================
 
 export async function getAllPosts(): Promise<Post[]> {
@@ -237,6 +362,10 @@ export async function bulkAction(
   action: 'publish' | 'draft' | 'delete'
 ): Promise<void> {
   return useRealApi() ? bulkActionApi(ids, action) : bulkActionMock(ids, action);
+}
+
+export async function createPost(postData: Partial<Post>): Promise<Post> {
+  return useRealApi() ? createPostApi(postData) : createPostMock(postData);
 }
 
 // Helper used by sidebar badges, etc.
