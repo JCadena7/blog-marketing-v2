@@ -468,6 +468,26 @@ export async function getAllPosts(): Promise<Post[]> {
   return useRealApi() ? getAllPostsApi() : getAllPostsMock();
 }
 
+/**
+ * Obtener un post por ID
+ */
+export async function getPostById(postId: number): Promise<Post | null> {
+  if (!useRealApi()) {
+    const post = postsStore.find(p => p.id === postId);
+    return post ?? null;
+  }
+
+  try {
+    const backendPost = await apiClient.get<PostBackend>(
+      (API_CONFIG.ENDPOINTS.POST_BY_ID as (id: number) => string)(postId)
+    );
+    return transformPostFromBackend(backendPost);
+  } catch (error) {
+    console.error('Error fetching post by ID:', error);
+    return null;
+  }
+}
+
 export async function updatePost(postId: number, postData: Partial<Post>): Promise<Post | null> {
   return useRealApi() ? updatePostApi(postId, postData) : updatePostMock(postId, postData);
 }

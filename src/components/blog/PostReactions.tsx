@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { darLike, quitarLike } from '../../services/postsService';
+import { darLike, quitarLike, getPostById } from '../../services/postsService';
 
 interface PostReactionsProps {
   postId: number;
@@ -23,6 +23,27 @@ const PostReactions: React.FC<PostReactionsProps> = ({
     // Verificar si el usuario ya dio like (desde localStorage)
     const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
     setHasLiked(likedPosts.includes(postId));
+  }, [postId]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const fetchLatestLikes = async () => {
+      try {
+        const post = await getPostById(postId);
+        if (post && isActive) {
+          setLikes(post.likes ?? 0);
+        }
+      } catch (error) {
+        console.error('❌ Error sincronizando likes:', error);
+      }
+    };
+
+    fetchLatestLikes();
+
+    return () => {
+      isActive = false;
+    };
   }, [postId]);
 
   const handleLike = async () => {
