@@ -769,10 +769,9 @@ export async function quitarLike(postId: number, userId: number): Promise<boolea
   }
   
   try {
-    await apiClient.delete(
-      (API_CONFIG.ENDPOINTS.POST_LIKE as (id: number) => string)(postId),
-      { body: JSON.stringify({ userId }) } as any
-    );
+    // Enviar userId como query parameter para DELETE
+    const endpoint = (API_CONFIG.ENDPOINTS.POST_LIKE as (id: number) => string)(postId);
+    await apiClient.delete(`${endpoint}?userId=${userId}`);
     return true;
   } catch (error) {
     console.error('Error quitando like:', error);

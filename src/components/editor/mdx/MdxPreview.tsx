@@ -68,7 +68,6 @@ export default function MdxPreview({ content = '', title = '', className = '' }:
 
   return (
     <div className={`mdx-preview ${className}`.trim()}>
-      <h1 className="text-3xl font-bold mb-6">{title || 'Sin título'}</h1>
       <div className="prose dark:prose-invert max-w-none">
         <MDXProvider components={components}>
           <MDXContent components={components} />
