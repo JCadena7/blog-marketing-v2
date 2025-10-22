@@ -1,37 +1,103 @@
-import { mockPosts, type Post } from '../data/mockPosts';
+import { mockPosts } from '../data/mockPosts';
 import { useRealApi, API_CONFIG } from '../config/api';
 import { apiClient } from '../lib/apiClient';
-import type { PostBackend } from '../types';
+import { type Post, type PostBackend, type PostStatus } from '../types';
+import { getAllEstados, type Estado } from './estadosService';
 
 // In-memory store for mockup purposes
 let postsStore: Post[] = [...mockPosts];
+
+// Cache de estados para evitar llamadas repetidas
+let estadosCache: Estado[] | null = null;
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 // ==================== TRANSFORMERS ====================
 
 /**
+ * Obtiene y cachea los estados del backend
+ */
+async function getEstadosMap(): Promise<Record<string, number>> {
+  if (!estadosCache) {
+    estadosCache = await getAllEstados();
+    console.log('📋 Estados obtenidos del backend:', estadosCache);
+  }
+  
+  const map: Record<string, number> = {};
+  estadosCache.forEach(estado => {
+    const nombre = estado.nombre.toLowerCase();
+    // Mapeo exacto según los estados del backend:
+    // 1: borrador
+    // 2: en_revision (pending)
+    // 3: publicado
+    // 4: rechazado
+    // 5: archivado
+    if (nombre === 'borrador' || nombre.includes('draft')) {
+      map['draft'] = estado.id;
+    } else if (nombre === 'publicado' || nombre.includes('published')) {
+      map['published'] = estado.id;
+    } else if (nombre === 'en_revision' || nombre.includes('revision') || nombre.includes('pending')) {
+      map['pending'] = estado.id;
+    } else if (nombre === 'rechazado' || nombre.includes('rejected')) {
+      map['rejected'] = estado.id;
+    }
+  });
+  
+  console.log('🗺️ Mapeo de estados creado:', map);
+  return map;
+}
+
+/**
  * Mapea estado_id del backend a status del frontend
  */
 function mapEstadoIdToStatus(estadoId: number): Post['status'] {
+  // Mapeo según los estados reales del backend:
+  // 1: borrador → draft
+  // 2: en_revision → pending
+  // 3: publicado → published
+  // 4: rechazado → rejected
+  // 5: archivado → rejected (tratamos archivado como rejected)
   const statusMap: Record<number, Post['status']> = {
-    1: 'draft',      // Borrador
-    2: 'published',  // Publicado
-    3: 'pending',    // Pendiente
-    4: 'rejected'    // Archivado/Rechazado
+    1: 'draft',      // borrador
+    2: 'pending',    // en_revision
+    3: 'published',  // publicado
+    4: 'rejected',   // rechazado
+    5: 'rejected'    // archivado (tratado como rejected)
   };
   return statusMap[estadoId] || 'draft';
 }
 
 /**
  * Mapea status del frontend a estado_id del backend
+ * Usa el mapeo dinámico si está disponible, sino usa el hardcodeado
+ */
+async function mapStatusToEstadoIdAsync(status: Post['status']): Promise<number> {
+  try {
+    const map = await getEstadosMap();
+    return map[status] || 1;
+  } catch (error) {
+    console.error('Error obteniendo mapeo de estados, usando fallback:', error);
+    // Fallback al mapeo hardcodeado
+    const estadoMap: Record<Post['status'], number> = {
+      'draft': 1,
+      'published': 2,
+      'pending': 3,
+      'rejected': 4
+    };
+    return estadoMap[status] || 1;
+  }
+}
+
+/**
+ * Mapea status del frontend a estado_id del backend (versión síncrona)
  */
 function mapStatusToEstadoId(status: Post['status']): number {
+  // Mapeo según los estados reales del backend
   const estadoMap: Record<Post['status'], number> = {
-    'draft': 1,
-    'published': 2,
-    'pending': 3,
-    'rejected': 4
+    'draft': 1,      // borrador
+    'pending': 2,    // en_revision
+    'published': 3,  // publicado
+    'rejected': 4    // rechazado
   };
   return estadoMap[status] || 1;
 }
@@ -222,6 +288,21 @@ async function deletePostMock(postId: number): Promise<boolean> {
   return postsStore.length < before;
 }
 
+async function updatePostMock(postId: number, postData: Partial<Post>): Promise<Post | null> {
+  await delay(300);
+  const idx = postsStore.findIndex((p) => p.id === postId);
+  if (idx === -1) return null;
+  
+  postsStore[idx] = {
+    ...postsStore[idx],
+    ...postData,
+    id: postId, // Asegurar que el ID no cambie
+    updatedAt: new Date().toISOString()
+  };
+  
+  return postsStore[idx];
+}
+
 async function bulkActionMock(
   ids: number[],
   action: 'publish' | 'draft' | 'delete'
@@ -247,25 +328,66 @@ async function getAllPostsApi(): Promise<Post[]> {
   }
 }
 
+async function updatePostApi(postId: number, postData: Partial<Post>): Promise<Post | null> {
+  try {
+    const backendData = transformPostToBackend(postData);
+    // Agregar el ID al payload según el DTO del backend
+    const updatePayload = {
+      ...backendData,
+      id: postId
+    };
+    
+    console.log('🔄 Actualizando post ID:', postId);
+    console.log('📝 Datos a actualizar:', updatePayload);
+    
+    const backendPost = await apiClient.patch<PostBackend>(
+      `${API_CONFIG.ENDPOINTS.POSTS as string}/${postId}`,
+      updatePayload
+    );
+    
+    return transformPostFromBackend(backendPost);
+  } catch (error) {
+    console.error('Error updating post via API:', error);
+    return null;
+  }
+}
+
 async function updatePostStatusApi(
   postId: number,
   newStatus: Post['status']
 ): Promise<Post | null> {
   try {
-    const post = await apiClient.patch<Post>(
+    // Obtener el estado_id dinámicamente desde el backend
+    const estadoId = await mapStatusToEstadoIdAsync(newStatus);
+    const payload = {
+      id: postId,
+      estado_id: estadoId
+    };
+    
+    console.log('🔄 Actualizando estado del post:');
+    console.log('  - Post ID:', postId);
+    console.log('  - Nuevo status:', newStatus);
+    console.log('  - Estado ID:', estadoId);
+    console.log('  - Payload:', payload);
+    
+    const backendPost = await apiClient.patch<PostBackend>(
       (API_CONFIG.ENDPOINTS.UPDATE_POST_STATUS as (id: string | number) => string)(postId),
-      { status: newStatus }
+      payload
     );
-    return post;
+    
+    console.log('✅ Estado actualizado exitosamente');
+    return transformPostFromBackend(backendPost);
   } catch (error) {
-    console.error('Error updating post status via API:', error);
+    console.error('❌ Error updating post status via API:', error);
     return null;
   }
 }
 
 async function deletePostApi(postId: number): Promise<boolean> {
   try {
+    console.log('🔄 Eliminando post ID:', postId);
     await apiClient.delete((API_CONFIG.ENDPOINTS.POST_BY_ID as (id: string | number) => string)(postId));
+    console.log('✅ Post eliminado exitosamente');
     return true;
   } catch (error) {
     console.error('Error deleting post via API:', error);
@@ -344,6 +466,10 @@ async function createPostApi(postData: Partial<Post>): Promise<Post> {
 
 export async function getAllPosts(): Promise<Post[]> {
   return useRealApi() ? getAllPostsApi() : getAllPostsMock();
+}
+
+export async function updatePost(postId: number, postData: Partial<Post>): Promise<Post | null> {
+  return useRealApi() ? updatePostApi(postId, postData) : updatePostMock(postId, postData);
 }
 
 export async function updatePostStatus(
