@@ -22,6 +22,19 @@ const PostsTable: React.FC = () => {
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showCreateWizard, setShowCreateWizard] = useState(false);
+  
+  // Leer filtro de la URL
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  useEffect(() => {
+    // Obtener filtro de la URL
+    const params = new URLSearchParams(window.location.search);
+    const filter = params.get('filter');
+    if (filter) {
+      setStatusFilter(filter);
+      console.log('🔍 Filtro de URL detectado:', filter);
+    }
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -50,8 +63,14 @@ const PostsTable: React.FC = () => {
       filtered = [];
     }
 
+    // Aplicar filtro de estado desde la URL
+    if (statusFilter && statusFilter !== 'all') {
+      filtered = filtered.filter(post => post.status === statusFilter);
+      console.log(`📊 Filtrando por estado "${statusFilter}":`, filtered.length, 'posts');
+    }
+
     return filtered;
-  }, [posts, hasPermission]);
+  }, [posts, hasPermission, statusFilter]);
 
   const handleStatusChange = async (postId: number, newStatus: string) => {
     try {
