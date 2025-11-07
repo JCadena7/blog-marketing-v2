@@ -40,12 +40,12 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
         title: post.title,
         excerpt: post.excerpt,
         content: post.content,
-        categoryId: post.categoryId.toString(),
-        tags: post.tags,
+        categoryId: post.categoryId?.toString() || '',
+        tags: post.tags || [],
         featuredImage: post.featuredImage,
-        metaTitle: post.seo.metaTitle,
-        metaDescription: post.seo.metaDescription,
-        focusKeyword: post.seo.focusKeyword,
+        metaTitle: post.seo?.metaTitle || '',
+        metaDescription: post.seo?.metaDescription || '',
+        focusKeyword: post.seo?.focusKeyword || '',
         status: post.status
       });
     }
@@ -102,6 +102,29 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
 
   const canPublish = hasPermission('publicar_post');
   const canSaveDraft = hasPermission('crear_post') || hasPermission('editar_post_propio');
+  const canReject = hasPermission('publicar_post'); // Solo editores/admins pueden rechazar
+  
+  // Determinar qué estados puede seleccionar el usuario
+  const getAvailableStatuses = () => {
+    const statuses = [
+      { value: 'draft', label: 'Borrador' }
+    ];
+    
+    // Autores pueden enviar a revisión
+    statuses.push({ value: 'pending', label: 'Pendiente Aprobación' });
+    
+    // Solo editores/admins pueden publicar
+    if (canPublish) {
+      statuses.push({ value: 'published', label: 'Publicado' });
+    }
+    
+    // Solo editores/admins pueden rechazar
+    if (canReject) {
+      statuses.push({ value: 'rejected', label: 'Rechazado' });
+    }
+    
+    return statuses;
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -149,32 +172,33 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
             </Button>
           )}
           
-          {canSaveDraft && (
-            <Button 
-              variant="outline" 
-              onClick={() => handleSave('draft')}
-              loading={saving}
-            >
-              Guardar Borrador
-            </Button>
-          )}
+          {/* Guardar con el estado seleccionado */}
+          <Button 
+            onClick={() => handleSave()}
+            loading={saving}
+            variant="primary"
+          >
+            💾 Guardar
+          </Button>
           
-          {canPublish && (
+          {/* Botones rápidos adicionales */}
+          {canPublish && formData.status !== 'published' && (
             <Button 
               onClick={() => handleSave('published')}
               loading={saving}
+              className="bg-green-600 hover:bg-green-700"
             >
-              <Save size={16} className="mr-2" />
-              Publicar
+              ✅ Publicar Ahora
             </Button>
           )}
           
-          {!canPublish && (
+          {!canPublish && formData.status !== 'pending' && (
             <Button 
               onClick={() => handleSave('pending')}
               loading={saving}
+              variant="outline"
             >
-              Enviar para Aprobación
+              📤 Enviar a Revisión
             </Button>
           )}
         </div>
@@ -230,10 +254,17 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as Post['status'] })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 >
-                  <option value="draft">Borrador</option>
-                  {canPublish && <option value="published">Publicado</option>}
-                  <option value="pending">Pendiente Aprobación</option>
+                  {getAvailableStatuses().map(status => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
                 </select>
+                {!canPublish && (
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    💡 Envía tu post a "Pendiente Aprobación" para que un editor lo revise
+                  </p>
+                )}
               </div>
 
               <div>

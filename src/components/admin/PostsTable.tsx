@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { CreditCard as Edit, Trash2, Eye, FileText, CircleCheck as CheckCircle, Circle as XCircle, Clock, Plus } from 'lucide-react';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { type Post } from '../../data/mockPosts';
-import { getAllPosts, updatePostStatus, deletePost as deletePostApi, bulkAction as bulkPostsAction } from '../../services/postsService';
+import { getAllPosts, updatePostStatus, deletePost as deletePostApi, bulkAction as bulkPostsAction, createPost } from '../../services/postsService';
 import { useNotifications } from './AdminNotificationSystem';
 import RoleBadge from './RoleBadge';
 import Button from '../ui/Button';
@@ -22,6 +22,19 @@ const PostsTable: React.FC = () => {
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; id: number | null }>({ open: false, id: null });
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showCreateWizard, setShowCreateWizard] = useState(false);
+  
+  // Leer filtro de la URL
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  useEffect(() => {
+    // Obtener filtro de la URL
+    const params = new URLSearchParams(window.location.search);
+    const filter = params.get('filter');
+    if (filter) {
+      setStatusFilter(filter);
+      console.log('🔍 Filtro de URL detectado:', filter);
+    }
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -50,8 +63,14 @@ const PostsTable: React.FC = () => {
       filtered = [];
     }
 
+    // Aplicar filtro de estado desde la URL
+    if (statusFilter && statusFilter !== 'all') {
+      filtered = filtered.filter(post => post.status === statusFilter);
+      console.log(`📊 Filtrando por estado "${statusFilter}":`, filtered.length, 'posts');
+    }
+
     return filtered;
-  }, [posts, hasPermission]);
+  }, [posts, hasPermission, statusFilter]);
 
   const handleStatusChange = async (postId: number, newStatus: string) => {
     try {
@@ -173,7 +192,7 @@ const PostsTable: React.FC = () => {
               {row.title}
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              {row.category.name}
+              {row.category?.name || 'Sin categoría'}
             </div>
           </div>
         </div>
@@ -181,7 +200,7 @@ const PostsTable: React.FC = () => {
       mobileRender: (value: string, row: Post) => (
         <div>
           <div className="font-medium text-gray-900 dark:text-white">{row.title}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">{row.category.name}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">{row.category?.name || 'Sin categoría'}</div>
         </div>
       )
     },
@@ -192,12 +211,12 @@ const PostsTable: React.FC = () => {
       render: (value: any, row: Post) => (
         <div className="flex items-center">
           <img
-            src={row.author.avatar}
-            alt={row.author.name}
+            src={row.author?.avatar || 'https://ui-avatars.com/api/?name=Usuario&background=3B82F6&color=fff'}
+            alt={row.author?.name || 'Usuario'}
             className="w-8 h-8 rounded-full mr-2"
           />
           <span className="text-sm text-gray-900 dark:text-white">
-            {row.author.name}
+            {row.author?.name || 'Autor desconocido'}
           </span>
         </div>
       )
@@ -348,13 +367,32 @@ const PostsTable: React.FC = () => {
         onClose={() => setShowCreateWizard(false)}
         onSubmit={async (postData) => {
           try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.log('📝 Datos del post a crear:', postData);
+            
+            // Crear el post con los datos del wizard
+            const newPost = await createPost({
+              title: postData.title,
+              content: postData.content,
+              excerpt: postData.excerpt,
+              categoryId: postData.categoryId ? Number(postData.categoryId) : undefined,
+              tags: postData.tags,
+              featuredImage: postData.featuredImage,
+              status: postData.status === 'scheduled' ? 'pending' : postData.status as 'draft' | 'pending' | 'published',
+              featured: postData.featured,
+              allowComments: postData.allowComments,
+              seo: {
+                metaTitle: postData.metaTitle || postData.title,
+                metaDescription: postData.metaDescription || postData.excerpt,
+                focusKeyword: postData.focusKeyword
+              }
+            });
+            
+            console.log('✅ Post creado exitosamente:', newPost);
             
             addNotification({
               type: 'success',
               title: 'Post creado',
-              message: 'El post ha sido creado exitosamente.'
+              message: `El post "${newPost.title}" ha sido creado exitosamente.`
             });
             
             // Refresh posts list
@@ -362,10 +400,11 @@ const PostsTable: React.FC = () => {
             setPosts(fresh);
             
           } catch (error) {
+            console.error('❌ Error al crear post:', error);
             addNotification({
               type: 'error',
               title: 'Error al crear post',
-              message: 'No se pudo crear el post.'
+              message: 'No se pudo crear el post. Verifica los datos e intenta nuevamente.'
             });
           }
           setShowCreateWizard(false);

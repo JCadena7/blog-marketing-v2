@@ -61,7 +61,7 @@ const CommentsModeration: React.FC = () => {
       filtered = filtered.filter(comment => 
         comment.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
         comment.author.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        comment.postTitle.toLowerCase().includes(searchTerm.toLowerCase())
+        comment.postTitle?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     return filtered;
@@ -217,7 +217,7 @@ const CommentsModeration: React.FC = () => {
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-3">
                 <img
-                  src={comment.author.avatar}
+                  src={comment.author.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author.name)}&background=3B82F6&color=fff`}
                   alt={comment.author.name}
                   className="w-10 h-10 rounded-full object-cover"
                 />
@@ -232,7 +232,7 @@ const CommentsModeration: React.FC = () => {
                     <Calendar size={14} className="mr-1" />
                     {new Date(comment.createdAt).toLocaleDateString()}
                     <span className="mx-2">•</span>
-                    <span>en "{comment.postTitle}"</span>
+                    <span>en "{comment.postTitle || 'Post desconocido'}"</span>
                   </div>
                 </div>
               </div>

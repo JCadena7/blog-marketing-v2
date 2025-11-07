@@ -169,7 +169,7 @@ const PostStatusWorkflow: React.FC<PostStatusWorkflowProps> = ({ post, onStatusC
             <WorkflowStep
               icon={Edit}
               title="Post Creado"
-              description={`Por ${post.author.name}`}
+              description={`Por ${post.author?.name || 'Autor desconocido'}`}
               timestamp={post.createdAt}
               completed={true}
             />

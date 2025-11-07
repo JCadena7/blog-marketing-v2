@@ -102,11 +102,11 @@ const BlogCard: React.FC<BlogCardProps> = ({ post, featured = false }) => {
             </h3>
 
             {/* Excerpt */}
-            <p className={`text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 ${
+            <div className={`text-gray-600 dark:text-gray-300 mb-4 line-clamp-3 ${
               featured ? 'text-lg leading-relaxed' : ''
             }`}>
               <MdxPreview content={post.excerpt} />
-            </p>
+            </div>
 
             {/* Tags */}
             <div className="flex flex-wrap gap-2 mb-4">

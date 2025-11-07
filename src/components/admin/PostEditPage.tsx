@@ -6,7 +6,7 @@ import ProtectedRoute from './ProtectedRoute';
 import { useNotifications } from './AdminNotificationSystem';
 import { type Post } from '../../data/mockPosts';
 import { type PostStatus } from '../../types';
-import { getAllPosts, updatePostStatus } from '../../services/postsService';
+import { getAllPosts, updatePostStatus, updatePost } from '../../services/postsService';
 import { usePermissions } from '../../hooks/usePermissions';
 import { AuthContext } from '../../contexts/AuthContext';
 
@@ -73,23 +73,39 @@ const PostEditPage: React.FC = () => {
     try {
       setSaving(true);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log(' Guardando cambios del post:', postData);
       
-      const updatedPost = { ...post, ...postData, updatedAt: new Date().toISOString() };
-      setPost(updatedPost);
-
-      addNotification({
-        type: 'success',
-        title: 'Post guardado',
-        message: 'Los cambios han sido guardados exitosamente.'
+      // Actualizar el post usando el servicio
+      const updatedPost = await updatePost(post.id, {
+        title: postData.title,
+        content: postData.content,
+        excerpt: postData.excerpt,
+        categoryId: postData.categoryId ? Number(postData.categoryId) : post.categoryId,
+        tags: postData.tags,
+        featuredImage: postData.featuredImage,
+        status: postData.status as 'draft' | 'pending' | 'published',
+        seo: postData.seo || post.seo
       });
 
+      if (updatedPost) {
+        setPost(updatedPost);
+        console.log(' Post actualizado exitosamente:', updatedPost);
+        
+        addNotification({
+          type: 'success',
+          title: 'Post guardado',
+          message: `"${updatedPost.title}" ha sido actualizado exitosamente.`
+        });
+      } else {
+        throw new Error('No se recibió respuesta del servidor');
+      }
+
     } catch (error) {
+      console.error(' Error al guardar post:', error);
       addNotification({
         type: 'error',
         title: 'Error al guardar',
-        message: 'No se pudieron guardar los cambios.'
+        message: 'No se pudieron guardar los cambios. Intenta nuevamente.'
       });
     } finally {
       setSaving(false);

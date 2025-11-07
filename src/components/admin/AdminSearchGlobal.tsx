@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, FileText, Users, MessageCircle, Folder, X, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePermissions } from '../../hooks/usePermissions';
-import { mockPosts } from '../../data/mockPosts';
-import { mockUsers } from '../../data/mockUsers';
-import { mockComments } from '../../data/mockComments';
-import { mockCategories } from '../../data/mockCategories';
+import { type Post, type User, type Comment, type Category } from '../../types';
+import { getAllPosts } from '../../services/postsService';
+import { getAllUsers } from '../../services/usersService';
+import { getAllComments } from '../../services/commentsService';
+import { getAllCategories } from '../../services/categoriesService';
 
 interface SearchResult {
   id: string;
@@ -49,100 +50,127 @@ const AdminSearchGlobal: React.FC<AdminSearchGlobalProps> = ({ isOpen, onClose }
       return;
     }
 
-    const searchResults: SearchResult[] = [];
+    // Búsqueda asíncrona
+    const performSearch = async () => {
+      const searchResults: SearchResult[] = [];
 
-    // Search Posts
-    if (canSearchPosts) {
-      const postResults = mockPosts
-        .filter(post => 
-          post.title.toLowerCase().includes(query.toLowerCase()) ||
-          post.content.toLowerCase().includes(query.toLowerCase())
-        )
-        .slice(0, 5)
-        .map(post => ({
-          id: `post-${post.id}`,
-          type: 'post' as const,
-          title: post.title,
-          subtitle: `Por ${post.author.name}`,
-          url: `/admin/posts/${post.id}/edit`,
-          icon: FileText,
-          meta: `${post.status} • ${post.category.name}`
-        }));
-      searchResults.push(...postResults);
-    }
+      // Search Posts - Usar datos reales del backend
+      if (canSearchPosts) {
+        try {
+          const posts = await getAllPosts();
+          const postResults = posts
+            .filter(post => 
+              post.title.toLowerCase().includes(query.toLowerCase()) ||
+              post.content.toLowerCase().includes(query.toLowerCase()) ||
+              post.author?.name.toLowerCase().includes(query.toLowerCase())
+            )
+            .slice(0, 5)
+            .map((post: Post) => ({
+              id: `post-${post.id}`,
+              type: 'post' as const,
+              title: post.title,
+              subtitle: `Por ${post.author?.name || 'Autor desconocido'}`,
+              url: `/admin/posts/${post.id}/edit`,
+              icon: FileText,
+              meta: `${post.status} • ${post.category?.name || 'Sin categoría'}`
+            }));
+          searchResults.push(...postResults);
+        } catch (error) {
+          console.error('Error buscando posts:', error);
+        }
+      }
 
-    // Search Users
-    if (canSearchUsers) {
-      const userResults = mockUsers
-        .filter(user => 
-          user.firstName.toLowerCase().includes(query.toLowerCase()) ||
-          user.lastName.toLowerCase().includes(query.toLowerCase()) ||
-          user.email.toLowerCase().includes(query.toLowerCase())
-        )
-        .slice(0, 3)
-        .map(user => ({
-          id: `user-${user.id}`,
-          type: 'user' as const,
-          title: `${user.firstName} ${user.lastName}`,
-          subtitle: user.email,
-          url: `/admin/usuarios/${user.id}`,
-          icon: Users,
-          meta: user.role
-        }));
-      searchResults.push(...userResults);
-    }
+      // Search Users - Usar datos reales del backend
+      if (canSearchUsers) {
+        try {
+          const users = await getAllUsers();
+          const userResults = users
+            .filter(user => 
+              user.firstName.toLowerCase().includes(query.toLowerCase()) ||
+              user.lastName.toLowerCase().includes(query.toLowerCase()) ||
+              user.email.toLowerCase().includes(query.toLowerCase())
+            )
+            .slice(0, 3)
+            .map(user => ({
+              id: `user-${user.id}`,
+              type: 'user' as const,
+              title: `${user.firstName} ${user.lastName}`,
+              subtitle: user.email,
+              url: `/admin/usuarios/${user.id}`,
+              icon: Users,
+              meta: user.role
+            }));
+          searchResults.push(...userResults);
+        } catch (error) {
+          console.error('Error buscando usuarios:', error);
+        }
+      }
 
-    // Search Comments
-    if (canSearchComments) {
-      const commentResults = mockComments
-        .filter(comment => 
-          comment.content.toLowerCase().includes(query.toLowerCase()) ||
-          comment.author.name.toLowerCase().includes(query.toLowerCase())
-        )
-        .slice(0, 3)
-        .map(comment => ({
-          id: `comment-${comment.id}`,
-          type: 'comment' as const,
-          title: comment.content.substring(0, 60) + '...',
-          subtitle: `Por ${comment.author.name}`,
-          url: `/admin/comentarios?highlight=${comment.id}`,
-          icon: MessageCircle,
-          meta: `${comment.status} • en "${comment.postTitle}"`
-        }));
-      searchResults.push(...commentResults);
-    }
+      // Search Comments - Usar datos reales del backend
+      if (canSearchComments) {
+        try {
+          const comments = await getAllComments();
+          const commentResults = comments
+            .filter(comment => 
+              comment.content.toLowerCase().includes(query.toLowerCase()) ||
+              comment.author.name.toLowerCase().includes(query.toLowerCase())
+            )
+            .slice(0, 3)
+            .map(comment => ({
+              id: `comment-${comment.id}`,
+              type: 'comment' as const,
+              title: comment.content.substring(0, 60) + '...',
+              subtitle: `Por ${comment.author.name}`,
+              url: `/admin/comentarios?highlight=${comment.id}`,
+              icon: MessageCircle,
+              meta: `${comment.status} • en "${comment.postTitle}"`
+            }));
+          searchResults.push(...commentResults);
+        } catch (error) {
+          console.error('Error buscando comentarios:', error);
+        }
+      }
 
-    // Search Categories
-    if (canSearchCategories) {
-      const categoryResults = mockCategories
-        .filter(category => 
-          category.name.toLowerCase().includes(query.toLowerCase()) ||
-          category.description.toLowerCase().includes(query.toLowerCase())
-        )
-        .slice(0, 3)
-        .map(category => ({
-          id: `category-${category.id}`,
-          type: 'category' as const,
-          title: category.name,
-          subtitle: category.description,
-          url: `/admin/categorias?edit=${category.id}`,
-          icon: Folder,
-          meta: `${category.postsCount} posts`
-        }));
-      searchResults.push(...categoryResults);
-    }
+      // Search Categories - Usar datos reales del backend
+      if (canSearchCategories) {
+        try {
+          const categories = await getAllCategories();
+          const categoryResults = categories
+            .filter(category => 
+              category.name.toLowerCase().includes(query.toLowerCase()) ||
+              category.description.toLowerCase().includes(query.toLowerCase())
+            )
+            .slice(0, 3)
+            .map(category => ({
+              id: `category-${category.id}`,
+              type: 'category' as const,
+              title: category.name,
+              subtitle: category.description,
+              url: `/admin/categorias?edit=${category.id}`,
+              icon: Folder,
+              meta: `${category.postsCount || 0} posts`
+            }));
+          searchResults.push(...categoryResults);
+        } catch (error) {
+          console.error('Error buscando categorías:', error);
+        }
+      }
 
-    // Only update state if results actually changed
-    const resultsChanged =
-      searchResults.length !== results.length ||
-      searchResults.some((r, i) => r.id !== results[i]?.id);
+      // Only update state if results actually changed
+      const resultsChanged =
+        searchResults.length !== results.length ||
+        searchResults.some((r, i) => r.id !== results[i]?.id);
 
-    if (resultsChanged) {
-      setResults(searchResults);
-      if (selectedIndex !== 0) setSelectedIndex(0);
-    } else if (selectedIndex > Math.max(searchResults.length - 1, 0)) {
-      setSelectedIndex(0);
-    }
+      if (resultsChanged) {
+        setResults(searchResults);
+        if (selectedIndex !== 0) setSelectedIndex(0);
+      } else if (selectedIndex > Math.max(searchResults.length - 1, 0)) {
+        setSelectedIndex(0);
+      }
+    };
+
+    // Ejecutar búsqueda
+    performSearch();
   }, [query, canSearchPosts, canSearchUsers, canSearchComments, canSearchCategories, results, selectedIndex]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

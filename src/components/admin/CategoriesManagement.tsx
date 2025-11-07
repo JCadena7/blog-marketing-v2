@@ -40,10 +40,12 @@ const CategoriesManagement: React.FC = () => {
     }
   };
 
-  const filteredCategories = categories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCategories = categories.filter(category => {
+    const searchLower = searchTerm.toLowerCase();
+    const nameMatch = category.name?.toLowerCase().includes(searchLower) || false;
+    const descMatch = category.description?.toLowerCase().includes(searchLower) || false;
+    return nameMatch || descMatch;
+  });
 
   const handleCreateCategory = () => {
     setSelectedCategory(null);

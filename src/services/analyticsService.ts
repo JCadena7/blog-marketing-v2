@@ -48,7 +48,7 @@ async function getAnalyticsDataApi(userRole: Role, timeRange: string = '30d'): P
 async function exportAnalyticsDataApi(userRole: Role, timeRange: string, format: 'csv' | 'pdf' = 'csv'): Promise<string> {
   try {
     const response = await apiClient.post<{ downloadUrl: string }>(
-      API_CONFIG.ENDPOINTS.ANALYTICS_EXPORT,
+      API_CONFIG.ENDPOINTS.ANALYTICS_EXPORT as string,
       { role: userRole, timeRange, format }
     );
     return response.downloadUrl;

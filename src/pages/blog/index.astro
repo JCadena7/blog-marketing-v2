@@ -3,10 +3,47 @@ import Layout from '../../layouts/Layout.astro';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import BlogCard from '../../components/blog/BlogCard';
-import { blogPosts, categories, getFeaturedPosts, type BlogPost } from '../../data/blogPosts';
+import { getAllPosts } from '../../services/postsService';
+import { getAllCategories } from '../../services/categoriesService';
+import type { Post } from '../../types';
 
-const featuredPosts = getFeaturedPosts();
-const regularPosts = blogPosts.filter((post: BlogPost) => !post.featured);
+// Función para adaptar Post del backend al formato BlogPost del componente
+function adaptPostToBlogPost(post: Post) {
+  return {
+    id: post.id.toString(),
+    title: post.title,
+    excerpt: post.excerpt || post.content?.substring(0, 200) || '',
+    slug: post.slug,
+    publishedAt: post.publishedAt || post.createdAt,
+    readTime: post.readTime || 5,
+    author: {
+      name: post.author?.name || 'Autor',
+      avatar: post.author?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author?.name || 'A')}`
+    },
+    category: {
+      name: post.category?.name || 'General',
+      color: post.category?.color || '#3B82F6'
+    },
+    image: post.featuredImage || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800',
+    tags: post.tags || []
+  };
+}
+
+// Obtener posts publicados del backend
+const allPosts = await getAllPosts();
+const publishedPosts = allPosts.filter((post: Post) => post.status === 'published');
+
+// Filtrar posts destacados y regulares
+const featuredPosts = publishedPosts.filter((post: Post) => post.featured).map(adaptPostToBlogPost);
+const regularPosts = publishedPosts.filter((post: Post) => !post.featured).map(adaptPostToBlogPost);
+
+// Obtener y adaptar categorías del backend
+const backendCategories = await getAllCategories();
+const categories = backendCategories.map(cat => ({
+  name: cat.name,
+  slug: cat.slug,
+  color: cat.color || '#3B82F6'
+}));
 ---
 
 <Layout 
@@ -35,7 +72,7 @@ const regularPosts = blogPosts.filter((post: BlogPost) => !post.featured);
     <section class="py-8 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-wrap justify-center gap-3">
-          {categories.map((category: { name: string; slug: string; color: string }) => (
+          {categories.map((category) => (
             <button
               class="filter-btn px-6 py-2 rounded-full border text-sm font-medium transition-all duration-200 hover:scale-105"
               data-category={category.slug}
@@ -73,7 +110,7 @@ const regularPosts = blogPosts.filter((post: BlogPost) => !post.featured);
         </h2>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-          {featuredPosts.map((post: BlogPost, index: number) => (
+          {featuredPosts.map((post, index) => (
             <a href={`/blog/${post.slug}`} class="block">
               <BlogCard 
                 post={post} 
@@ -94,8 +131,8 @@ const regularPosts = blogPosts.filter((post: BlogPost) => !post.featured);
         </h2>
         
         <div id="posts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {regularPosts.map((post: BlogPost) => (
-            <a href={`/blog/${post.slug}`} class="block" data-category={post.category.slug}>
+          {regularPosts.map((post) => (
+            <a href={`/blog/${post.slug}`} class="block" data-category={post.category.name}>
               <BlogCard post={post} client:load />
             </a>
           ))}

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { CreditCard as Edit, Trash2, Shield, UserX, UserCheck, Search, MoveHorizontal as MoreHorizontal, Mail, Calendar, Users } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { type User } from '../../data/mockUsers';
-import { getAllUsers, changeUserRole, updateUserStatus, deleteUser as deleteUserApi } from '../../services/usersService';
+import { getAllUsers, changeUserRole, updateUserStatus, deleteUser as deleteUserApi, getRoles } from '../../services/usersService';
 import { useNotifications } from './AdminNotificationSystem';
 import RoleBadge from './RoleBadge';
 import Button from '../ui/Button';
@@ -28,6 +28,9 @@ const UsersTable: React.FC = () => {
       try {
         const data = await getAllUsers();
         if (mounted) setUsers(data);
+        
+        // Obtener roles para verificar mapeo correcto
+        await getRoles();
       } finally {
         if (mounted) setLoading(false);
       }
@@ -205,7 +208,6 @@ const UsersTable: React.FC = () => {
           className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
         >
           <option value="all">Todos los roles</option>
-          <option value="creador">Creador</option>
           <option value="administrador">Administrador</option>
           <option value="editor">Editor</option>
           <option value="escritor">Escritor</option>
@@ -270,17 +272,23 @@ const UsersTable: React.FC = () => {
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     <div className="flex items-center">
                       <Calendar size={14} className="mr-1" />
-                      {new Date(user.lastLogin).toLocaleDateString()}
+                      {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : '—'}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {user.stats.postsCreated && (
-                        <div>Posts: {user.stats.postsCreated}</div>
-                      )}
-                      {user.stats.commentsApproved && (
-                        <div>Comentarios: {user.stats.commentsApproved}</div>
-                      )}
+                    <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+                      {(() => {
+                        const stats = user.stats || {};
+                        const items = [
+                          stats.postsCreated ? `Posts: ${stats.postsCreated}` : null,
+                          stats.postsPublished ? `Publicados: ${stats.postsPublished}` : null,
+                          stats.commentsApproved ? `Comentarios: ${stats.commentsApproved}` : null,
+                          stats.usersManaged ? `Usuarios: ${stats.usersManaged}` : null,
+                          stats.totalViews ? `Vistas: ${stats.totalViews}` : null,
+                        ].filter(Boolean);
+                        
+                        return items.length > 0 ? items.map((item, i) => <div key={i}>{item}</div>) : <div>—</div>;
+                      })()}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -352,7 +360,7 @@ const UsersTable: React.FC = () => {
             </p>
             
             <div className="space-y-2 mb-6">
-              {(['creador', 'administrador', 'editor', 'escritor', 'autor', 'comentador'] as Role[]).map((role) => (
+              {(['administrador', 'editor', 'escritor', 'autor', 'comentador'] as Role[]).map((role) => (
                 <button
                   key={role}
                   onClick={() => handleRoleChange(selectedUser.id, role)}

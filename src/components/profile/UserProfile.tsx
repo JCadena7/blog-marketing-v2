@@ -156,6 +156,11 @@ const UserProfile: React.FC<UserProfileProps> = ({ userId }) => {
   }
 
   const availableSections = getVisibleSections();
+  
+  console.log('👤 UserProfile - userId:', userId);
+  console.log('📑 Active Tab:', activeTab);
+  console.log('📋 Available Sections:', availableSections);
+  console.log('🔐 Is Own Profile:', isOwnProfile);
 
   return (
     <motion.div

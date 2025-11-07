@@ -66,6 +66,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
         const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user_data') : null;
+        // console.log('Stored token:', storedToken);
+        // console.log('Stored user:', storedUser);
         const demo = typeof window !== 'undefined' ? localStorage.getItem('demo_mode') : null;
         const strict = typeof window !== 'undefined' ? localStorage.getItem('preview_strict') : null;
 
@@ -84,7 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         if (storedToken && storedUser) {
-          // Validate token
+          // Real authentication: validate token
           const validatedUser = validateToken(storedToken);
           if (validatedUser) {
             setUser(validatedUser);
@@ -93,19 +95,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Token invalid, clear storage
             if (typeof window !== 'undefined') {
               localStorage.removeItem('auth_token');
+              localStorage.removeItem('refresh_token');
               localStorage.removeItem('user_data');
             }
+            // No user if token is invalid
+            setUser(null);
+            setAuthToken(null);
           }
         } else {
-          // Fallback to mock user for development (only if not in demo mode)
+          // No stored token/user - check if we should load mock user for development
+          // Only load mock user if explicitly set via mock_user_id (for testing/preview)
           const storedId = typeof window !== 'undefined' ? localStorage.getItem('mock_user_id') : null;
           if (storedId) {
             const found = mockUsers.find(u => u.id === Number(storedId));
-            setUser(found || getCurrentUser());
-          } else {
-            const currentUser = getCurrentUser();
-            setUser(currentUser);
+            if (found) {
+              setUser(found);
+            }
           }
+          // Otherwise, leave user as null (not authenticated)
         }
       } catch (error) {
         console.error('Error loading user:', error);
@@ -123,12 +130,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth_token', token);
         localStorage.setItem('user_data', JSON.stringify(userData));
-        // leaving mock_user_id and demo_mode untouched here
+        console.log('User logged in:', userData);
+        // Clear demo mode when doing real login
+        localStorage.removeItem('demo_mode');
+        localStorage.removeItem('mock_user_id');
       }
 
       // Update state
       setUser(userData);
       setAuthToken(token);
+      setDemoModeState(false);
 
       // Redirect based on user type
       const redirectTo = isNewUser 
@@ -156,6 +167,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Clear localStorage
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
       localStorage.removeItem('user_data');
       localStorage.removeItem('mock_user_id');
       localStorage.removeItem('demo_mode');

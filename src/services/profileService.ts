@@ -17,12 +17,74 @@ async function updateProfileMock(userId: number, updates: Partial<UserProfile>):
 }
 
 // ==================== API DATA LAYER ====================
+// Nota: El backend no tiene módulo /profiles, usamos /users en su lugar
 
 async function getProfileApi(userId: number): Promise<UserProfile | null> {
   try {
-    const profile = await apiClient.get<UserProfile>(
-      API_CONFIG.ENDPOINTS.PROFILE_BY_ID(userId)
+    // Usar endpoint de users ya que profiles no existe en el backend
+    const user = await apiClient.get<any>(
+      (API_CONFIG.ENDPOINTS.USER_BY_ID as (id: number) => string)(userId)
     );
+    
+    // Transformar respuesta del backend al formato UserProfile del frontend
+    const profile: UserProfile = {
+      id: user.id,
+      username: user.username || `user${user.id}`,
+      email: user.email,
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName || 'User')}&background=3B82F6&color=fff`,
+      coverImage: user.coverImage || '',
+      bio: user.bio || '',
+      location: user.location || '',
+      website: user.website || '',
+      socialLinks: user.socialLinks || {
+        twitter: '',
+        linkedin: '',
+        github: '',
+        instagram: ''
+      },
+      role: user.rol?.nombre || 'autor',
+      status: user.status || 'active',
+      isVerified: user.isVerified || false,
+      onlineStatus: user.onlineStatus || 'offline',
+      lastLogin: user.lastLogin || new Date().toISOString(),
+      createdAt: user.created_at || new Date().toISOString(),
+      updatedAt: user.updated_at || new Date().toISOString(),
+      stats: {
+        postsCreated: 0,
+        postsPublished: 0,
+        totalViews: 0,
+        totalLikes: 0,
+        totalComments: 0,
+        followers: 0,
+        following: 0,
+        likesReceived: 0,
+        commentsReceived: 0,
+        profileViews: 0
+      },
+      activity: [],
+      preferences: {
+        emailNotifications: true,
+        pushNotifications: false,
+        marketingEmails: false,
+        theme: 'light',
+        language: 'es',
+        timezone: 'America/Bogota',
+        defaultEditor: 'hybrid',
+        autoSave: true,
+        showSocialLinks: true,
+        showEmail: false,
+        profileVisibility: 'public',
+        allowDirectMessages: 'everyone',
+        showOnlineStatus: true,
+        allowAnalytics: true,
+        indexPosts: true,
+        allowComments: true,
+        moderateComments: false
+      }
+    };
+    
     return profile;
   } catch (error) {
     console.error('Error fetching profile from API:', error);
@@ -32,11 +94,26 @@ async function getProfileApi(userId: number): Promise<UserProfile | null> {
 
 async function updateProfileApi(userId: number, updates: Partial<UserProfile>): Promise<UserProfile | null> {
   try {
-    const profile = await apiClient.patch<UserProfile>(
-      API_CONFIG.ENDPOINTS.PROFILE_BY_ID(userId),
-      updates
+    // Transformar datos del frontend al formato del backend
+    const backendUpdates: any = {};
+    
+    if (updates.firstName || updates.lastName) {
+      backendUpdates.nombre = `${updates.firstName || ''} ${updates.lastName || ''}`.trim();
+    }
+    if (updates.email) backendUpdates.email = updates.email;
+    if (updates.avatar) backendUpdates.avatar = updates.avatar;
+    if (updates.bio) backendUpdates.bio = updates.bio;
+    if (updates.location) backendUpdates.location = updates.location;
+    if (updates.website) backendUpdates.website = updates.website;
+    if (updates.socialLinks) backendUpdates.socialLinks = updates.socialLinks;
+    
+    const user = await apiClient.patch<any>(
+      (API_CONFIG.ENDPOINTS.USER_BY_ID as (id: number) => string)(userId),
+      backendUpdates
     );
-    return profile;
+    
+    // Obtener el perfil actualizado
+    return getProfileApi(userId);
   } catch (error) {
     console.error('Error updating profile via API:', error);
     return null;
@@ -70,12 +147,21 @@ async function uploadAvatarMock(userId: number, imageFile: File): Promise<{ avat
 
 async function uploadAvatarApi(userId: number, imageFile: File): Promise<{ avatarUrl: string }> {
   try {
-    const result = await apiClient.upload<{ avatarUrl: string }>(
-      API_CONFIG.ENDPOINTS.UPLOAD_AVATAR(userId),
-      imageFile,
-      'avatar'
+    // El backend no tiene endpoint específico para upload de avatar
+    // Opción 1: Usar un servicio de upload externo (Cloudinary, S3, etc.)
+    // Opción 2: Implementar endpoint en el backend
+    // Por ahora, simulamos el upload y actualizamos con URL
+    
+    // TODO: Implementar upload real a servicio de almacenamiento
+    const avatarUrl = URL.createObjectURL(imageFile);
+    
+    // Actualizar el usuario con la nueva URL del avatar
+    await apiClient.patch(
+      (API_CONFIG.ENDPOINTS.USER_BY_ID as (id: number) => string)(userId),
+      { avatar: avatarUrl }
     );
-    return result;
+    
+    return { avatarUrl };
   } catch (error) {
     console.error('Error uploading avatar via API:', error);
     throw error;
@@ -95,12 +181,17 @@ async function uploadCoverMock(userId: number, imageFile: File): Promise<{ cover
 
 async function uploadCoverApi(userId: number, imageFile: File): Promise<{ coverUrl: string }> {
   try {
-    const result = await apiClient.upload<{ coverUrl: string }>(
-      API_CONFIG.ENDPOINTS.UPLOAD_COVER(userId),
-      imageFile,
-      'cover'
+    // El backend no tiene endpoint específico para upload de cover
+    // TODO: Implementar upload real a servicio de almacenamiento
+    const coverUrl = URL.createObjectURL(imageFile);
+    
+    // Actualizar el usuario con la nueva URL del cover
+    await apiClient.patch(
+      (API_CONFIG.ENDPOINTS.USER_BY_ID as (id: number) => string)(userId),
+      { coverImage: coverUrl }
     );
-    return result;
+    
+    return { coverUrl };
   } catch (error) {
     console.error('Error uploading cover via API:', error);
     throw error;

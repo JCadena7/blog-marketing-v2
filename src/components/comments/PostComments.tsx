@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, ThumbsUp, Flag, Reply, Send, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Loader, Import as SortAsc, Dessert as SortDesc } from 'lucide-react';
-import { getAllComments } from '../../services/commentsService';
+import { getCommentsByPostId, createComment } from '../../services/commentsService';
 import { type Comment } from '../../data/mockComments';
+
 import CommentForm from './CommentForm';
 import CommentsList from './CommentsList';
 import CommentsLoader from './CommentsLoader';
@@ -21,6 +22,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
 }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'popular'>('newest');
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info';
@@ -52,28 +54,31 @@ const PostComments: React.FC<PostCommentsProps> = ({
   const fetchComments = async () => {
     try {
       setLoading(true);
-      const allComments = await getAllComments();
-      
-      // Filter comments for this post and only approved ones
-      let postComments = allComments.filter(comment => 
-        comment.postId === postId && comment.status === 'approved'
-      );
+      const { comments: postComments } = await getCommentsByPostId(Number(postId), {
+        withUser: true,
+        withReplies: true,
+        page: 1,
+        limit: 50
+      });
+
+      // Only approved comments unless we want to show pending ones as moderator view
+      let filteredComments = postComments.filter(comment => comment.status === 'approved');
 
       // Sort comments
       switch (sortBy) {
         case 'oldest':
-          postComments.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          filteredComments.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
           break;
         case 'popular':
-          postComments.sort((a, b) => b.likes - a.likes);
+          filteredComments.sort((a, b) => b.likes - a.likes);
           break;
         case 'newest':
         default:
-          postComments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          filteredComments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           break;
       }
 
-      setComments(postComments);
+      setComments(filteredComments);
     } catch (error) {
       console.error('Error fetching comments:', error);
       setNotification({
@@ -87,36 +92,23 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
   const handleCommentSubmit = async (commentData: any) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newComment: Comment = {
-        id: Date.now(),
-        postId,
-        postTitle: 'Post actual',
-        authorId: isAuthenticated ? user.id : 0,
-        author: {
-          id: isAuthenticated ? user.id : 0,
-          name: isAuthenticated ? user.name : commentData.authorName,
-          email: isAuthenticated ? user.email : commentData.authorEmail,
-          avatar: isAuthenticated ? user.avatar : `https://ui-avatars.com/api/?name=${encodeURIComponent(commentData.authorName)}`
-        },
+      const newComment = await createComment({
+        postId: Number(postId),
+        authorId: isAuthenticated ? user.id : undefined,
         content: commentData.content,
-        status: 'pending', // Comments need moderation
         parentId: commentData.parentId,
-        likes: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+        status: 'pending'
+      });
 
-      // Add to comments list (it will show as pending)
+      // Add to comments list to give immediate feedback
       setComments(prev => [newComment, ...prev]);
       
       setNotification({
         type: 'info',
         message: 'Tu comentario está pendiente de moderación y será visible una vez aprobado'
       });
-      
+
+      // Reset form feedback will happen in CommentForm component
     } catch (error) {
       setNotification({
         type: 'error',
