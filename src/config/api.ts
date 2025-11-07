@@ -35,7 +35,7 @@ interface ApiConfig {
 
 export const API_CONFIG: ApiConfig = {
   // Set to false to use mock data, true to use real API
-  USE_REAL_API: true, // Cambia a true cuando quieras usar el backend real
+  USE_REAL_API: false, // Cambia a true cuando quieras usar el backend real
   
   // Base URL for the API (when USE_REAL_API is true)
   BASE_URL: API_BASE_URL,
