@@ -22,36 +22,57 @@ const generateToken = (user: User): string => {
 export const validateToken = (token: string): User | null => {
   try {
     if (!token) return null;
-    
-    // Decode JWT token (format: header.payload.signature)
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    
-    // Decode payload (base64url)
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-    
-    // Check if token is expired
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
-      console.log('⚠️ Token expirado');
-      return null;
+
+    const isMockToken = !token.includes('.');
+    let payload: Record<string, any> | null = null;
+
+    if (isMockToken) {
+      payload = JSON.parse(atob(token));
+
+      if (payload?.exp && payload.exp < Date.now()) {
+        console.log('⚠️ Mock token expirado');
+        return null;
+      }
+    } else {
+      // Decode JWT token (format: header.payload.signature)
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+
+      // Decode payload (base64url)
+      payload = JSON.parse(
+        atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
+      );
+
+      // Check if token is expired
+      if (payload?.exp && payload.exp * 1000 < Date.now()) {
+        console.log('⚠️ Token expirado');
+        return null;
+      }
     }
-    
+
     // Get user data from localStorage (saved during login)
     if (typeof window !== 'undefined') {
       const storedUser = localStorage.getItem('user_data');
       if (storedUser) {
         const user = JSON.parse(storedUser);
-        
+
         // Asegurar que el usuario tenga el formato correcto
         // Si tiene 'rol' en lugar de 'role', mapearlo
         if (user.rol && !user.role) {
           user.role = user.rol;
         }
-        
+
         return user;
       }
     }
-    
+
+    if (isMockToken && payload?.id) {
+      const found = mockUsers.find(u => u.id === payload?.id);
+      if (found) {
+        return found;
+      }
+    }
+
     return null;
   } catch (error) {
     console.error('Error validating token:', error);
