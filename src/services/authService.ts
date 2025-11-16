@@ -288,8 +288,12 @@ async function resetPasswordApi(token: string, newPassword: string): Promise<voi
 
 async function checkEmailAvailabilityApi(email: string): Promise<boolean> {
   try {
-    const response = await apiClient.get<{ available: boolean }>(`/auth/check-email?email=${encodeURIComponent(email)}`);
-    return response.available;
+    const response = await apiClient.post<{ exists: boolean; message?: string }>(
+      API_CONFIG.ENDPOINTS.VALIDATE_EMAIL as string,
+      { email }
+    );
+
+    return !response.exists;
   } catch (error) {
     console.error('Error checking email availability via API:', error);
     return false;
