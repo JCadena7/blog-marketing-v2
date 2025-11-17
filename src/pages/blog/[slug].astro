@@ -5,6 +5,7 @@ import Footer from '../../components/layout/Footer';
 import MdxPreview from '../../components/editor/mdx/MdxPreview';
 import PostComments from '../../components/comments/PostComments';
 import PostReactions from '../../components/blog/PostReactions';
+import PostViewTracker from '../../components/blog/PostViewTracker';
 import { getAllPosts } from '../../services/postsService';
 import type { Post } from '../../types';
 
@@ -43,6 +44,7 @@ const relatedPosts = allPosts
   <Header client:load />
   
   <main class="min-h-screen bg-white dark:bg-gray-900">
+    <PostViewTracker postId={post.id} client:load />
     <!-- Article Header -->
     <article class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <header class="mb-12">
