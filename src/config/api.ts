@@ -45,7 +45,8 @@ export const API_CONFIG: ApiConfig = {
     // ==================== AUTH ====================
     LOGIN: '/auths/sign-in',
     REGISTER: '/auths/sign-up',
-    LOGOUT: '/auths/logout', // ⚠️ No existe en backend - manejar en frontend
+    LOGOUT: '/auths/sign-out',
+    REFRESH_TOKEN: '/auths/refresh',
     CREATE_USUARIO: '/auths/usuarios', // Crear usuario con Supabase
     VALIDATE_EMAIL: '/auths/validate-email',
     

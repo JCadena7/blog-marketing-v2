@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { getCurrentUser, type User, mockUsers } from '../data/mockUsers';
 import type { Role } from '../data/rolePermissions';
-import { validateToken } from '../services/authService';
+import { validateToken, logout as logoutService } from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
@@ -157,8 +157,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setLoading(true);
+
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      await logoutService(token);
+    } catch (error) {
+      console.warn('Error calling logout API:', error);
+    }
 
     // Clear state
     setUser(null);

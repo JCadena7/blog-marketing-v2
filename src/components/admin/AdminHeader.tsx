@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+
 import { motion } from 'framer-motion';
-import { Search, User, LogOut, Settings, Moon, Sun, Command } from 'lucide-react';
+import { Search, User, Settings, Moon, Sun, Command } from 'lucide-react';
+
 import { useAuth } from '../../hooks/useAuth';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 
@@ -18,6 +20,7 @@ const AdminHeader: React.FC = () => {
   const [isDark, setIsDark] = useState(false);
   const breakpoint = useBreakpoint();
   const isMobile = breakpoint === 'mobile';
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const theme = localStorage.getItem('theme');
@@ -52,13 +55,15 @@ const AdminHeader: React.FC = () => {
 
   // Close dropdowns when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => {
-      setShowUserMenu(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!userMenuRef.current?.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
     };
 
     if (showUserMenu) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showUserMenu]);
 
@@ -112,16 +117,10 @@ const AdminHeader: React.FC = () => {
             </span>
 
             {/* User Menu */}
-            <div className="relative">
+            <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                onBlur={(e) => {
-                  // Don't close if clicking on dropdown items
-                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                    setTimeout(() => setShowUserMenu(false), 150);
-                  }
-                }}
               >
                 <img
                   src={user?.avatar}
@@ -161,9 +160,11 @@ const AdminHeader: React.FC = () => {
                     Configuración
                   </a>
                   <hr className="my-1 border-gray-200 dark:border-gray-700" />
-                  <div className="px-4 py-2">
-                    <LogoutButton variant="ghost" size="sm" className="w-full justify-start p-0 h-auto" />
-                  </div>
+                  <LogoutButton
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start rounded-none px-4 py-2 text-sm font-normal text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  />
                 </motion.div>
               )}
             </div>
