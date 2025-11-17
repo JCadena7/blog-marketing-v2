@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import type { ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
 import { Save, Eye, ArrowLeft, Clock, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, FileText, Tag } from 'lucide-react'
 import { usePermissions } from '../../hooks/usePermissions';
@@ -8,6 +9,8 @@ import {type Category } from '../../data/mockCategories';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Card from '../ui/Card';
+import { uploadPostFeaturedImage } from '../../services/postsService';
+import { useNotifications } from './AdminNotificationSystem';
 
 interface PostEditorProps {
   post?: Post;
@@ -32,6 +35,9 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
   });
   const [saving, setSaving] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
+  const [uploadingFeaturedImage, setUploadingFeaturedImage] = useState(false);
+  const featuredImageInputRef = useRef<HTMLInputElement | null>(null);
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     loadCategories();
@@ -65,6 +71,46 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
   const loadCategories = async () => {
     const data = await getAllCategories();
     setCategories(data.filter(cat => cat.isActive));
+  };
+
+  const handleFeaturedImageUploadClick = () => {
+    featuredImageInputRef.current?.click();
+  };
+
+  const handleFeaturedImageFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!post?.id) {
+      addNotification({
+        type: 'warning',
+        title: 'Guarda el post primero',
+        message: 'Necesitas guardar el post para obtener un ID antes de subir una imagen.'
+      });
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      setUploadingFeaturedImage(true);
+      const { featuredImageUrl } = await uploadPostFeaturedImage(post.id, file);
+      setFormData((prev) => ({ ...prev, featuredImage: featuredImageUrl }));
+      addNotification({
+        type: 'success',
+        title: 'Imagen subida',
+        message: 'La imagen destacada se actualizó correctamente.'
+      });
+    } catch (error) {
+      console.error(error);
+      addNotification({
+        type: 'error',
+        title: 'Error al subir',
+        message: 'No se pudo subir la imagen destacada. Intenta nuevamente.'
+      });
+    } finally {
+      setUploadingFeaturedImage(false);
+      event.target.value = '';
+    }
   };
 
   const handleAutoSave = async () => {
@@ -291,6 +337,28 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
                 onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
                 placeholder="URL de la imagen..."
               />
+              <div className="flex items-center gap-3 mt-2">
+                <input
+                  ref={featuredImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFeaturedImageFileChange}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleFeaturedImageUploadClick}
+                  disabled={!post?.id || uploadingFeaturedImage}
+                >
+                  {uploadingFeaturedImage ? 'Subiendo...' : 'Subir archivo'}
+                </Button>
+                {!post?.id && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Guarda el post para habilitar la subida.
+                  </p>
+                )}
+              </div>
             </div>
           </Card>
 

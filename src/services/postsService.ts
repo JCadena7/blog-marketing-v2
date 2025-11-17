@@ -7,6 +7,17 @@ import { getAllEstados, type Estado } from './estadosService';
 // In-memory store for mockup purposes
 let postsStore: Post[] = [...mockPosts];
 
+type UploadPostImageResponse = {
+  imagen_destacada?: string;
+  featuredImage?: string;
+  secure_url?: string;
+  secureUrl?: string;
+  post?: {
+    imagen_destacada?: string;
+    featuredImage?: string;
+  };
+};
+
 // Cache de estados para evitar llamadas repetidas
 let estadosCache: Estado[] | null = null;
 
@@ -932,5 +943,39 @@ export async function getKeywordsMasUsadas(limit: number = 50): Promise<any[]> {
   } catch (error) {
     console.error('Error obteniendo keywords más usadas:', error);
     return [];
+  }
+}
+
+export async function uploadPostFeaturedImage(postId: number, file: File): Promise<{ featuredImageUrl: string }> {
+  if (!useRealApi()) {
+    const mockUrl = URL.createObjectURL(file);
+    postsStore = postsStore.map((post) =>
+      post.id === postId ? { ...post, featuredImage: mockUrl } : post
+    );
+    return { featuredImageUrl: mockUrl };
+  }
+
+  try {
+    const response = await apiClient.upload<UploadPostImageResponse>(
+      (API_CONFIG.ENDPOINTS.POST_UPLOAD_FEATURED_IMAGE as (postId: number) => string)(postId),
+      file,
+    );
+
+    const featuredImageUrl =
+      response?.imagen_destacada ??
+      response?.featuredImage ??
+      response?.secure_url ??
+      response?.secureUrl ??
+      response?.post?.imagen_destacada ??
+      response?.post?.featuredImage;
+
+    if (!featuredImageUrl) {
+      throw new Error('No se recibió la URL de la imagen destacada desde el backend');
+    }
+
+    return { featuredImageUrl };
+  } catch (error) {
+    console.error('Error uploading featured image via API:', error);
+    throw error;
   }
 }
