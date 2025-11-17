@@ -290,13 +290,14 @@ export async function getCommentsByPostId(
   
   try {
     const queryParams = new URLSearchParams();
+    queryParams.append('post_id', postId.toString());
     queryParams.append('withUser', withUser.toString());
     queryParams.append('withReplies', withReplies.toString());
     queryParams.append('page', page.toString());
     queryParams.append('limit', limit.toString());
     
     const response = await apiClient.get<CommentsPaginatedResponse>(
-      `${(API_CONFIG.ENDPOINTS.COMMENTS_BY_POST as (id: number) => string)(postId)}?${queryParams.toString()}`
+      `${API_CONFIG.ENDPOINTS.COMMENTS as string}?${queryParams.toString()}`
     );
     
     return {
