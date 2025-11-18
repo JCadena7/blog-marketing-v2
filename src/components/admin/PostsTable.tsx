@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { CreditCard as Edit, Trash2, Eye, FileText, CircleCheck as CheckCircle, Circle as XCircle, Clock, Plus } from 'lucide-react';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { type Post } from '../../data/mockPosts';
-import { getAllPosts, updatePostStatus, deletePost as deletePostApi, bulkAction as bulkPostsAction, createPost } from '../../services/postsService';
+import { getAllPosts, updatePostStatus, deletePost as deletePostApi, bulkAction as bulkPostsAction, createPost, uploadPostFeaturedImage } from '../../services/postsService';
 import { useNotifications } from './AdminNotificationSystem';
 import RoleBadge from './RoleBadge';
 import Button from '../ui/Button';
@@ -370,7 +370,7 @@ const PostsTable: React.FC = () => {
             console.log('📝 Datos del post a crear:', postData);
             
             // Crear el post con los datos del wizard
-            const newPost = await createPost({
+            let newPost = await createPost({
               title: postData.title,
               content: postData.content,
               excerpt: postData.excerpt,
@@ -386,6 +386,20 @@ const PostsTable: React.FC = () => {
                 focusKeyword: postData.focusKeyword
               }
             });
+            
+            if (postData.featuredImageFile && newPost?.id) {
+              try {
+                const { featuredImageUrl } = await uploadPostFeaturedImage(newPost.id, postData.featuredImageFile);
+                newPost = { ...newPost, featuredImage: featuredImageUrl } as typeof newPost;
+              } catch (uploadError) {
+                console.error('❌ Error subiendo imagen destacada:', uploadError);
+                addNotification({
+                  type: 'warning',
+                  title: 'Post sin imagen',
+                  message: 'El post se creó pero la imagen no se pudo subir. Intenta editarlo y subirla nuevamente.'
+                });
+              }
+            }
             
             console.log('✅ Post creado exitosamente:', newPost);
             

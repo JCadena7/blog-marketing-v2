@@ -522,7 +522,21 @@ export async function bulkAction(
 }
 
 export async function createPost(postData: Partial<Post>): Promise<Post> {
-  return useRealApi() ? createPostApi(postData) : createPostMock(postData);
+  let createdPost = useRealApi() ? await createPostApi(postData) : await createPostMock(postData);
+
+  // Normalizar featuredImage/imágen destacada procedente del backend
+  if (createdPost) {
+    const featuredImage =
+      (createdPost as any).featuredImage ??
+      (createdPost as any).imagen_destacada ??
+      createdPost.featuredImage;
+
+    if (featuredImage && createdPost.featuredImage !== featuredImage) {
+      createdPost = { ...createdPost, featuredImage } as Post;
+    }
+  }
+
+  return createdPost;
 }
 
 // Helper used by sidebar badges, etc.
