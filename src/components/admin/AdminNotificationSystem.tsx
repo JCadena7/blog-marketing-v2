@@ -23,20 +23,44 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
-const generateNotificationId = () => {
-  if (typeof crypto !== 'undefined') {
-    if (typeof crypto.randomUUID === 'function') {
-      return crypto.randomUUID();
+const resolveCrypto = (): Crypto => {
+  if (typeof globalThis !== 'undefined') {
+    if (globalThis.crypto) {
+      return globalThis.crypto;
     }
 
-    if (typeof crypto.getRandomValues === 'function') {
-      const bytes = new Uint32Array(4);
-      crypto.getRandomValues(bytes);
-      return Array.from(bytes, value => value.toString(16).padStart(8, '0')).join('');
+    const legacyCrypto = (globalThis as typeof globalThis & { msCrypto?: Crypto }).msCrypto;
+    if (legacyCrypto) {
+      return legacyCrypto;
     }
   }
 
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
+  throw new Error('Secure crypto API is unavailable in this environment');
+};
+
+const generateNotificationId = () => {
+  const cryptoApi = resolveCrypto();
+
+  if (typeof cryptoApi.randomUUID === 'function') {
+    return cryptoApi.randomUUID();
+  }
+
+  if (typeof cryptoApi.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16);
+    cryptoApi.getRandomValues(bytes);
+
+    const segments = [
+      bytes.slice(0, 4),
+      bytes.slice(4, 6),
+      bytes.slice(6, 8),
+      bytes.slice(8, 10),
+      bytes.slice(10, 16)
+    ].map(group => Array.from(group, value => value.toString(16).padStart(2, '0')).join(''));
+
+    return segments.join('-');
+  }
+
+  throw new Error('Crypto API does not expose a supported random generator');
 };
 
 export const useNotifications = () => {
