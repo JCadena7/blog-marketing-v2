@@ -47,7 +47,8 @@ class ApiClient {
    */
   private async request<T>(
     endpoint: string,
-    options: RequestOptions = {}
+    options: RequestOptions = {},
+    isRetry: boolean = false
   ): Promise<T> {
     const { timeout = this.defaultTimeout, ...fetchOptions } = options;
 
@@ -85,6 +86,13 @@ class ApiClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        if (response.status === 401 && !isRetry && endpoint !== (API_CONFIG.ENDPOINTS.REFRESH_TOKEN as string)) {
+          const refreshed = await this.attemptTokenRefresh();
+          if (refreshed) {
+            return this.request<T>(endpoint, options, true);
+          }
+        }
+
         const errorData = await response.json().catch(() => ({}));
         throw new ApiError(
           errorData.message || `HTTP Error ${response.status}`,
@@ -227,6 +235,61 @@ class ApiClient {
     }
 
     return await response.json();
+  }
+
+  private clearStoredAuth() {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_data');
+  }
+
+  private async attemptTokenRefresh(): Promise<boolean> {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      this.clearStoredAuth();
+      return false;
+    }
+
+    try {
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.REFRESH_TOKEN as string), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken })
+      });
+
+      if (!response.ok) {
+        this.clearStoredAuth();
+        return false;
+      }
+
+      const data = await response.json();
+      const newToken = data.accessToken || data.token;
+      if (!newToken) {
+        this.clearStoredAuth();
+        return false;
+      }
+
+      localStorage.setItem('auth_token', newToken);
+      if (data.refreshToken) {
+        localStorage.setItem('refresh_token', data.refreshToken);
+      }
+      if (data.user) {
+        localStorage.setItem('user_data', JSON.stringify(data.user));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      this.clearStoredAuth();
+      return false;
+    }
   }
 }
 

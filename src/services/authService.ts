@@ -260,11 +260,14 @@ async function registerApi(userData: RegisterFormData): Promise<{ user: User; to
   }
 }
 
-async function logoutApi(): Promise<void> {
+async function logoutApi(accessToken?: string | null): Promise<void> {
   try {
-    await apiClient.post(API_CONFIG.ENDPOINTS.LOGOUT as string, {});
+    await apiClient.post(API_CONFIG.ENDPOINTS.LOGOUT as string, {
+      accessToken
+    });
   } catch (error) {
     console.error('Error logging out via API:', error);
+    throw error;
   }
 }
 
@@ -288,21 +291,43 @@ async function resetPasswordApi(token: string, newPassword: string): Promise<voi
 
 async function checkEmailAvailabilityApi(email: string): Promise<boolean> {
   try {
-    const response = await apiClient.get<{ available: boolean }>(`/auth/check-email?email=${encodeURIComponent(email)}`);
-    return response.available;
+    const response = await apiClient.post<{ exists: boolean; message?: string }>(
+      API_CONFIG.ENDPOINTS.VALIDATE_EMAIL as string,
+      { email }
+    );
+
+    return !response.exists;
   } catch (error) {
     console.error('Error checking email availability via API:', error);
     return false;
   }
 }
 
-async function refreshTokenApi(token: string): Promise<{ user: User; token: string }> {
+interface RefreshTokenApiResponse {
+  accessToken?: string;
+  token?: string;
+  refreshToken?: string;
+  user?: User;
+}
+
+async function refreshTokenApi(refreshTokenValue: string): Promise<{ user?: User; token: string; refreshToken?: string }> {
   try {
-    const response = await apiClient.post<{ user: User; token: string }>(
-      '/auth/refresh',
-      { token }
+    const response = await apiClient.post<RefreshTokenApiResponse>(
+      API_CONFIG.ENDPOINTS.REFRESH_TOKEN as string,
+      { refreshToken: refreshTokenValue }
     );
-    return response;
+
+    const token = response.accessToken || response.token;
+
+    if (!token) {
+      throw new Error('El backend no devolvió un nuevo access token');
+    }
+
+    return {
+      user: response.user,
+      token,
+      refreshToken: response.refreshToken
+    };
   } catch (error) {
     console.error('Error refreshing token via API:', error);
     throw error;
@@ -319,8 +344,8 @@ export const register = async (userData: RegisterFormData): Promise<{ user: User
   return useRealApi() ? registerApi(userData) : registerMock(userData);
 };
 
-export const logout = async (): Promise<void> => {
-  return useRealApi() ? logoutApi() : logoutMock();
+export const logout = async (accessToken?: string | null): Promise<void> => {
+  return useRealApi() ? logoutApi(accessToken) : logoutMock();
 };
 
 export const forgotPassword = async (email: string): Promise<void> => {
@@ -335,6 +360,6 @@ export const checkEmailAvailability = async (email: string): Promise<boolean> =>
   return useRealApi() ? checkEmailAvailabilityApi(email) : checkEmailAvailabilityMock(email);
 };
 
-export const refreshToken = async (token: string): Promise<{ user: User; token: string }> => {
-  return useRealApi() ? refreshTokenApi(token) : refreshTokenMock(token);
+export const refreshToken = async (refreshTokenValue: string): Promise<{ user?: User; token: string; refreshToken?: string }> => {
+  return useRealApi() ? refreshTokenApi(refreshTokenValue) : refreshTokenMock(refreshTokenValue);
 };

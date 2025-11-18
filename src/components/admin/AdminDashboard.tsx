@@ -12,7 +12,7 @@ import ProtectedRoute from './ProtectedRoute';
 import { mockPosts, getPendingPosts } from '../../data/mockPosts';
 import { mockComments, getPendingComments } from '../../data/mockComments';
 import { mockUsers } from '../../data/mockUsers';
-import { createPost } from '../../services/postsService';
+import { createPost, uploadPostFeaturedImage } from '../../services/postsService';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 
@@ -165,33 +165,49 @@ const AdminDashboard: React.FC = () => {
         onClose={() => setShowCreateWizard(false)}
         onSubmit={async (postData) => {
           try {
-            const newPost = await createPost({
+            let newPost = await createPost({
               title: postData.title,
               content: postData.content,
               excerpt: postData.excerpt,
               categoryId: postData.categoryId ? Number(postData.categoryId) : undefined,
               tags: postData.tags,
               featuredImage: postData.featuredImage,
-              status: postData.status === 'scheduled' ? 'pending' : postData.status as 'draft' | 'pending' | 'published',
+              status: postData.status === 'scheduled' ? 'pending' : (postData.status as 'draft' | 'pending' | 'published'),
               featured: postData.featured,
               allowComments: postData.allowComments,
               seo: {
                 metaTitle: postData.metaTitle || postData.title,
                 metaDescription: postData.metaDescription || postData.excerpt,
-                focusKeyword: postData.focusKeyword
-              }
+                focusKeyword: postData.focusKeyword,
+              },
             });
+
+            if (postData.featuredImageFile && newPost?.id) {
+              try {
+                const { featuredImageUrl } = await uploadPostFeaturedImage(newPost.id, postData.featuredImageFile);
+                newPost = { ...newPost, featuredImage: featuredImageUrl } as typeof newPost;
+              } catch (uploadError) {
+                console.error('Error subiendo imagen destacada', uploadError);
+                addNotification({
+                  type: 'warning',
+                  title: 'Post creado sin imagen',
+                  message: 'No se pudo subir la imagen destacada. Intenta editar el post para reintentar.',
+                });
+              }
+            }
+
             addNotification({
               type: 'success',
               title: 'Post creado',
-              message: `El post "${newPost.title}" ha sido creado exitosamente.`
+              message: `El post "${newPost.title}" ha sido creado exitosamente.`,
             });
             setShowCreateWizard(false);
           } catch (error) {
+            console.error('Error creando post', error);
             addNotification({
               type: 'error',
               title: 'Error',
-              message: 'No se pudo crear el post.'
+              message: 'No se pudo crear el post.',
             });
           }
         }}

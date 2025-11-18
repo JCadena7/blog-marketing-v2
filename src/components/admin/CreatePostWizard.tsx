@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, CreditCard as Edit, Search, Send, CircleCheck as CheckCircle, Clock, Eye, Calendar, Tag, Image as ImageIcon, TriangleAlert as AlertTriangle, ArrowLeft, ArrowRight, Save, X, Crown, Palette, Target } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -18,9 +19,12 @@ interface PostFormData {
   categoryId: string;
   tags: string[];
   featuredImage: string;
+  featuredImageFile: File | null;
+  featuredImagePreview: string | null;
   metaTitle: string;
   metaDescription: string;
   focusKeyword: string;
+
   status: 'draft' | 'pending' | 'published' | 'scheduled';
   publishDate?: string;
   allowComments: boolean;
@@ -46,9 +50,12 @@ const CreatePostWizard: React.FC<CreatePostWizardProps> = ({ isOpen, onClose, on
     categoryId: '',
     tags: [],
     featuredImage: '',
+    featuredImageFile: null,
+    featuredImagePreview: null,
     metaTitle: '',
     metaDescription: '',
     focusKeyword: '',
+
     status: hasPermission('publicar_post') ? 'published' : 'pending',
     allowComments: true,
     featured: false,
@@ -117,9 +124,12 @@ const CreatePostWizard: React.FC<CreatePostWizardProps> = ({ isOpen, onClose, on
       categoryId: '',
       tags: [],
       featuredImage: '',
+      featuredImageFile: null,
+      featuredImagePreview: null,
       metaTitle: '',
       metaDescription: '',
       focusKeyword: '',
+
       status: hasPermission('publicar_post') ? 'published' : 'pending',
       allowComments: true,
       featured: false,
@@ -307,111 +317,197 @@ const BasicInfoStep: React.FC<{
   formData: PostFormData;
   onChange: (data: PostFormData) => void;
   categories: Category[];
-}> = ({ formData, onChange, categories }) => (
-  <div className="space-y-6">
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      <Input
-        label="Título del Post"
-        value={formData.title}
-        onChange={(e) => onChange({ ...formData, title: e.target.value })}
-        placeholder="Ingresa un título atractivo para tu post..."
-        className="text-lg font-medium"
-        icon={<FileText size={20} className="text-gray-400" />}
-      />
-      <div className="mt-2 flex justify-between text-sm text-gray-500 dark:text-gray-400">
-        <span>Recomendado: 50-70 caracteres para SEO</span>
-        <span className={formData.title.length > 70 ? 'text-amber-500' : ''}>
-          {formData.title.length}/70
-        </span>
-      </div>
-    </motion.div>
+}> = ({ formData, onChange, categories }) => {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 }}
-    >
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-        Categoría
-      </label>
-      <select
-        value={formData.categoryId}
-        onChange={(e) => onChange({ ...formData, categoryId: e.target.value })}
-        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-        required
-      >
-        <option value="">Selecciona una categoría</option>
-        {categories.map(category => (
-          <option key={category.id} value={category.id}>
-            {category.name} ({category.postsCount} posts)
-          </option>
-        ))}
-      </select>
-    </motion.div>
+  useEffect(() => {
+    return () => {
+      if (formData.featuredImagePreview) {
+        URL.revokeObjectURL(formData.featuredImagePreview);
+      }
+    };
+  }, [formData.featuredImagePreview]);
 
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-    >
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-        Resumen / Excerpt
-      </label>
-      <textarea
-        value={formData.excerpt}
-        onChange={(e) => onChange({ ...formData, excerpt: e.target.value })}
-        rows={3}
-        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
-        placeholder="Breve descripción que aparecerá en las tarjetas del blog..."
-      />
-      <div className="mt-2 flex justify-between text-sm text-gray-500 dark:text-gray-400">
-        <span>Recomendado: 150-160 caracteres</span>
-        <span className={formData.excerpt.length > 160 ? 'text-amber-500' : ''}>
-          {formData.excerpt.length}/160
-        </span>
-      </div>
-    </motion.div>
+  const handleFeaturedImageUrlChange = (value: string) => {
+    if (formData.featuredImageFile && formData.featuredImagePreview) {
+      URL.revokeObjectURL(formData.featuredImagePreview);
+    }
+    onChange({
+      ...formData,
+      featuredImage: value,
+      featuredImageFile: null,
+      featuredImagePreview: null,
+    });
+  };
 
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-    >
-      <Input
-        label="Imagen Destacada (URL)"
-        value={formData.featuredImage}
-        onChange={(e) => onChange({ ...formData, featuredImage: e.target.value })}
-        placeholder="https://images.pexels.com/..."
-        icon={<ImageIcon size={20} className="text-gray-400" />}
-      />
-      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-        💡 Tip: Usa imágenes de alta calidad de Pexels para mejor engagement
-      </p>
-    </motion.div>
+  const handleUploadClick = () => fileInputRef.current?.click();
 
-    {/* Preview de la imagen */}
-    {formData.featuredImage && (
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (formData.featuredImagePreview) {
+      URL.revokeObjectURL(formData.featuredImagePreview);
+    }
+
+    const preview = URL.createObjectURL(file);
+    onChange({
+      ...formData,
+      featuredImageFile: file,
+      featuredImagePreview: preview,
+      featuredImage: '',
+    });
+
+    event.target.value = '';
+  };
+
+  const handleClearFile = () => {
+    if (formData.featuredImagePreview) {
+      URL.revokeObjectURL(formData.featuredImagePreview);
+    }
+    onChange({
+      ...formData,
+      featuredImageFile: null,
+      featuredImagePreview: null,
+      featuredImage: '',
+    });
+  };
+
+  const previewSrc = formData.featuredImageFile
+    ? formData.featuredImagePreview
+    : formData.featuredImage;
+
+  return (
+    <div className="space-y-6">
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.4 }}
-        className="mt-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
       >
-        <img
-          src={formData.featuredImage}
-          alt="Vista previa"
-          className="w-full h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
+        <Input
+          label="Título del Post"
+          value={formData.title}
+          onChange={(e) => onChange({ ...formData, title: e.target.value })}
+          placeholder="Ingresa un título atractivo para tu post..."
+          className="text-lg font-medium"
+          icon={<FileText size={20} className="text-gray-400" />}
         />
+        <div className="mt-2 flex justify-between text-sm text-gray-500 dark:text-gray-400">
+          <span>Recomendado: 50-70 caracteres para SEO</span>
+          <span className={formData.title.length > 70 ? 'text-amber-500' : ''}>
+            {formData.title.length}/70
+          </span>
+        </div>
       </motion.div>
-    )}
-  </div>
-);
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Categoría
+        </label>
+        <select
+          value={formData.categoryId}
+          onChange={(e) => onChange({ ...formData, categoryId: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+          required
+        >
+          <option value="">Selecciona una categoría</option>
+          {categories.map(category => (
+            <option key={category.id} value={category.id}>
+              {category.name} ({category.postsCount} posts)
+            </option>
+          ))}
+        </select>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Resumen / Excerpt
+        </label>
+        <textarea
+          value={formData.excerpt}
+          onChange={(e) => onChange({ ...formData, excerpt: e.target.value })}
+          rows={3}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
+          placeholder="Breve descripción que aparecerá en las tarjetas del blog..."
+        />
+        <div className="mt-2 flex justify-between text-sm text-gray-500 dark:text-gray-400">
+          <span>Recomendado: 150-160 caracteres</span>
+          <span className={formData.excerpt.length > 160 ? 'text-amber-500' : ''}>
+            {formData.excerpt.length}/160
+          </span>
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Input
+          label="Imagen Destacada (URL)"
+          value={formData.featuredImage}
+          onChange={(e) => handleFeaturedImageUrlChange(e.target.value)}
+          placeholder="https://images.pexels.com/..."
+          icon={<ImageIcon size={20} className="text-gray-400" />}
+          disabled={Boolean(formData.featuredImageFile)}
+        />
+        <div className="flex items-center gap-3 mt-3">
+          <input
+            ref={fileInputRef}
+            className="hidden"
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+          />
+          <Button type="button" variant="outline" onClick={handleUploadClick}>
+            {formData.featuredImageFile ? 'Cambiar archivo' : 'Subir imagen'}
+          </Button>
+          {formData.featuredImageFile && (
+            <Button type="button" variant="ghost" onClick={handleClearFile}>
+              Usar URL
+            </Button>
+          )}
+        </div>
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          {formData.featuredImageFile
+            ? 'La imagen se subirá automáticamente cuando crees el post.'
+            : '💡 Tip: Usa imágenes de alta calidad de Pexels para mejor engagement'}
+        </p>
+        {formData.featuredImageFile && (
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Archivo seleccionado: {formData.featuredImageFile.name}
+          </p>
+        )}
+      </motion.div>
+
+      {/* Preview de la imagen */}
+      {previewSrc && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.4 }}
+          className="mt-4"
+        >
+          <img
+            src={previewSrc}
+            alt="Vista previa"
+            className="w-full h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        </motion.div>
+      )}
+    </div>
+  );
+};
 
 const ContentStep: React.FC<{
   formData: PostFormData;

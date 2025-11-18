@@ -2,6 +2,19 @@ import { getUserProfile, updateUserProfile, searchUserProfiles, mockUserProfiles
 import { useRealApi, API_CONFIG } from '../config/api';
 import { apiClient } from '../lib/apiClient';
 
+type UploadResponse = {
+  avatar?: string;
+  avatarUrl?: string;
+  coverImage?: string;
+  coverUrl?: string;
+  secure_url?: string;
+  secureUrl?: string;
+  user?: {
+    avatar?: string;
+    coverImage?: string;
+  };
+};
+
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 // ==================== MOCK DATA LAYER ====================
@@ -147,20 +160,22 @@ async function uploadAvatarMock(userId: number, imageFile: File): Promise<{ avat
 
 async function uploadAvatarApi(userId: number, imageFile: File): Promise<{ avatarUrl: string }> {
   try {
-    // El backend no tiene endpoint específico para upload de avatar
-    // Opción 1: Usar un servicio de upload externo (Cloudinary, S3, etc.)
-    // Opción 2: Implementar endpoint en el backend
-    // Por ahora, simulamos el upload y actualizamos con URL
-    
-    // TODO: Implementar upload real a servicio de almacenamiento
-    const avatarUrl = URL.createObjectURL(imageFile);
-    
-    // Actualizar el usuario con la nueva URL del avatar
-    await apiClient.patch(
-      (API_CONFIG.ENDPOINTS.USER_BY_ID as (id: number) => string)(userId),
-      { avatar: avatarUrl }
+    const response = await apiClient.upload<UploadResponse>(
+      (API_CONFIG.ENDPOINTS.USER_UPLOAD_AVATAR as (id: number) => string)(userId),
+      imageFile,
     );
-    
+
+    const avatarUrl =
+      response?.avatar ??
+      response?.avatarUrl ??
+      response?.secure_url ??
+      response?.secureUrl ??
+      response?.user?.avatar;
+
+    if (!avatarUrl) {
+      throw new Error('No se recibió la URL del avatar desde el backend');
+    }
+
     return { avatarUrl };
   } catch (error) {
     console.error('Error uploading avatar via API:', error);
@@ -181,16 +196,22 @@ async function uploadCoverMock(userId: number, imageFile: File): Promise<{ cover
 
 async function uploadCoverApi(userId: number, imageFile: File): Promise<{ coverUrl: string }> {
   try {
-    // El backend no tiene endpoint específico para upload de cover
-    // TODO: Implementar upload real a servicio de almacenamiento
-    const coverUrl = URL.createObjectURL(imageFile);
-    
-    // Actualizar el usuario con la nueva URL del cover
-    await apiClient.patch(
-      (API_CONFIG.ENDPOINTS.USER_BY_ID as (id: number) => string)(userId),
-      { coverImage: coverUrl }
+    const response = await apiClient.upload<UploadResponse>(
+      (API_CONFIG.ENDPOINTS.USER_UPLOAD_COVER as (id: number) => string)(userId),
+      imageFile,
     );
-    
+
+    const coverUrl =
+      response?.coverImage ??
+      response?.coverUrl ??
+      response?.secure_url ??
+      response?.secureUrl ??
+      response?.user?.coverImage;
+
+    if (!coverUrl) {
+      throw new Error('No se recibió la URL de la portada desde el backend');
+    }
+
     return { coverUrl };
   } catch (error) {
     console.error('Error uploading cover via API:', error);

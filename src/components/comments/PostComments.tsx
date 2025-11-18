@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, ThumbsUp, Flag, Reply, Send, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Loader, Import as SortAsc, Dessert as SortDesc } from 'lucide-react';
 import { getCommentsByPostId, createComment } from '../../services/commentsService';
 import { type Comment } from '../../data/mockComments';
+import { useAuth } from '../../hooks/useAuth';
 
 import CommentForm from './CommentForm';
 import CommentsList from './CommentsList';
@@ -15,10 +16,33 @@ interface PostCommentsProps {
   allowComments?: boolean;
 }
 
-const PostComments: React.FC<PostCommentsProps> = ({ 
-  postId, 
-  postSlug, 
-  allowComments = true 
+type CommentAuthor = {
+  id: number;
+  name: string;
+  email?: string;
+  avatar?: string;
+};
+
+const normalizeUser = (rawUser?: any): CommentAuthor | null => {
+  if (!rawUser) return null;
+  const firstName = rawUser.firstName ?? rawUser.first_name ?? '';
+  const lastName = rawUser.lastName ?? rawUser.last_name ?? '';
+  const username = rawUser.username ?? '';
+  const baseName = `${firstName} ${lastName}`.trim();
+  const displayName = baseName || rawUser.name || username || rawUser.email || 'Usuario';
+
+  return {
+    id: rawUser.id ?? rawUser.user_id ?? 0,
+    name: displayName,
+    email: rawUser.email ?? '',
+    avatar: rawUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}`,
+  };
+};
+
+const PostComments: React.FC<PostCommentsProps> = ({
+  postId,
+  postSlug,
+  allowComments = true
 }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,14 +53,36 @@ const PostComments: React.FC<PostCommentsProps> = ({
     message: string;
   } | null>(null);
 
-  // Mock user - in a real app this would come from auth context
-  const user = {
-    id: 1,
-    name: 'Usuario Demo',
-    email: 'demo@example.com',
-    avatar: 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400'
-  };
-  const isAuthenticated = true; // Mock authentication
+  const { user } = useAuth();
+  const contextUser = normalizeUser(user);
+  const [activeUser, setActiveUser] = useState<CommentAuthor | null>(contextUser);
+
+  useEffect(() => {
+    if (contextUser) {
+      setActiveUser(contextUser);
+      return;
+    }
+
+    if (typeof window === 'undefined') {
+      setActiveUser(null);
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem('user_data');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setActiveUser(normalizeUser(parsed));
+      } else {
+        setActiveUser(null);
+      }
+    } catch (error) {
+      console.warn('PostComments: no se pudo leer user_data de localStorage', error);
+      setActiveUser(null);
+    }
+  }, [contextUser]);
+
+  const isUserAuthenticated = Boolean(activeUser);
 
   useEffect(() => {
     fetchComments();
@@ -94,7 +140,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
     try {
       const newComment = await createComment({
         postId: Number(postId),
-        authorId: isAuthenticated ? user.id : undefined,
+        authorId: isUserAuthenticated && activeUser ? activeUser.id : undefined,
         content: commentData.content,
         parentId: commentData.parentId,
         status: 'pending'
@@ -181,8 +227,8 @@ const PostComments: React.FC<PostCommentsProps> = ({
       {/* Comment Form */}
       <CommentForm 
         onSubmit={handleCommentSubmit}
-        isAuthenticated={isAuthenticated}
-        user={user}
+        isAuthenticated={isUserAuthenticated}
+        user={activeUser}
         showNotification={showNotification}
       />
 
@@ -195,7 +241,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         <CommentsList 
           comments={comments}
           onReply={handleCommentSubmit}
-          user={user}
+          user={activeUser}
           showNotification={showNotification}
         />
       )}

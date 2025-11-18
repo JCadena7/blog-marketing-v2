@@ -45,8 +45,10 @@ export const API_CONFIG: ApiConfig = {
     // ==================== AUTH ====================
     LOGIN: '/auths/sign-in',
     REGISTER: '/auths/sign-up',
-    LOGOUT: '/auths/logout', // ⚠️ No existe en backend - manejar en frontend
+    LOGOUT: '/auths/sign-out',
+    REFRESH_TOKEN: '/auths/refresh',
     CREATE_USUARIO: '/auths/usuarios', // Crear usuario con Supabase
+    VALIDATE_EMAIL: '/auths/validate-email',
     
     // ==================== USERS ====================
     USERS: '/users',
@@ -56,6 +58,8 @@ export const API_CONFIG: ApiConfig = {
     // Nota: Para cambiar rol o status, usar PATCH /users/:id con el campo correspondiente
     CHANGE_USER_ROLE: (id: number) => `/users/${id}`, // Enviar { rolId: number }
     UPDATE_USER_STATUS: (id: number) => `/users/${id}`, // Enviar { status: string }
+    USER_UPLOAD_AVATAR: (id: number) => `/users/${id}/avatar`,
+    USER_UPLOAD_COVER: (id: number) => `/users/${id}/cover`,
     
     // ==================== POSTS ====================
     POSTS: '/posts',
@@ -80,6 +84,7 @@ export const API_CONFIG: ApiConfig = {
     POST_ADD_CATEGORIAS: (id: number) => `/posts/${id}/add-categorias`,
     POST_KEYWORDS: (postId: number) => `/posts/${postId}/keywords`,
     POST_KEYWORDS_CREATE: (postId: number) => `/posts/${postId}/keywords/create`,
+    POST_UPLOAD_FEATURED_IMAGE: (postId: number) => `/posts/${postId}/imagen-destacada`,
     KEYWORDS_FIND_OR_CREATE: '/posts/keywords/find-or-create',
     KEYWORDS_MAS_USADAS: '/posts/keywords/mas-usadas',
     

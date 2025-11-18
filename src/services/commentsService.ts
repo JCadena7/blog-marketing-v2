@@ -2,6 +2,7 @@ import { mockComments, type Comment } from '../data/mockComments';
 import { useRealApi, API_CONFIG } from '../config/api';
 import { apiClient } from '../lib/apiClient';
 import type { CommentBackend, CommentsPaginatedResponse } from '../types';
+import { getStoredUserData } from '../utils/authStorage';
 
 let commentsStore: Comment[] = [...mockComments];
 
@@ -169,9 +170,11 @@ async function updateCommentStatusApi(
   notes?: string
 ): Promise<Comment | null> {
   try {
+    const currentUser = getStoredUserData();
+    const moderatorId = currentUser?.id || currentUser?.user_id || 1;
     const backendComment = await apiClient.patch<CommentBackend>(
       (API_CONFIG.ENDPOINTS.MODERATE_COMMENT as (id: number) => string)(commentId),
-      { status: newStatus, moderation_notes: notes }
+      { id: commentId, status: newStatus, moderated_by: moderatorId, moderation_notes: notes }
     );
     return transformCommentFromBackend(backendComment);
   } catch (error) {
@@ -290,13 +293,14 @@ export async function getCommentsByPostId(
   
   try {
     const queryParams = new URLSearchParams();
+    queryParams.append('post_id', postId.toString());
     queryParams.append('withUser', withUser.toString());
     queryParams.append('withReplies', withReplies.toString());
     queryParams.append('page', page.toString());
     queryParams.append('limit', limit.toString());
     
     const response = await apiClient.get<CommentsPaginatedResponse>(
-      `${(API_CONFIG.ENDPOINTS.COMMENTS_BY_POST as (id: number) => string)(postId)}?${queryParams.toString()}`
+      `${API_CONFIG.ENDPOINTS.COMMENTS as string}?${queryParams.toString()}`
     );
     
     return {

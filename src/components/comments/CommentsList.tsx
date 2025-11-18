@@ -14,8 +14,18 @@ interface CommentWithReplies extends Comment {
 }
 
 const CommentsList: React.FC<CommentsListProps> = ({ comments, onReply, user, showNotification }) => {
-  // Organize comments in tree structure
+  // Allow lists that already contain nested replies (from backend) to render directly
+  const hasPrecomputedHierarchy = useMemo(
+    () => comments.some(comment => comment.replies && comment.replies.length > 0),
+    [comments]
+  );
+
+  // Organize comments in tree structure when data is flat
   const commentTree = useMemo(() => {
+    if (hasPrecomputedHierarchy) {
+      return comments as CommentWithReplies[];
+    }
+
     const rootComments = comments.filter(c => !c.parentId);
     
     const buildReplies = (parentId: number): CommentWithReplies[] => {
@@ -31,7 +41,7 @@ const CommentsList: React.FC<CommentsListProps> = ({ comments, onReply, user, sh
       ...comment,
       replies: buildReplies(comment.id)
     }));
-  }, [comments]);
+  }, [comments, hasPrecomputedHierarchy]);
 
   return (
     <div className="space-y-6">
