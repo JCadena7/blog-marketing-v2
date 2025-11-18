@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+
 import { Hop as Home, FileText, MessageCircle, Users, ChartBar as BarChart3, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -14,6 +15,12 @@ const AdminMobileNav: React.FC<AdminMobileNavProps> = ({ currentPath }) => {
   const { addNotification } = useNotifications();
   const [showFAB, setShowFAB] = useState(false);
   const [showCreateWizard, setShowCreateWizard] = useState(false);
+
+  const navigateSafely = (path: string) => {
+    if (typeof globalThis !== 'undefined' && 'location' in globalThis && globalThis.location) {
+      globalThis.location.assign(path);
+    }
+  };
 
   const navItems = [
     {
@@ -56,7 +63,7 @@ const AdminMobileNav: React.FC<AdminMobileNavProps> = ({ currentPath }) => {
     {
       label: 'Nuevo Usuario',
       icon: Users,
-      action: () => window.location.href = '/admin/usuarios/nuevo',
+      action: () => navigateSafely('/admin/usuarios/nuevo'),
       permission: ['admin_completo'],
       color: 'bg-green-500'
     }

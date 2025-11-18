@@ -89,8 +89,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ widgets }) => {
       animate="visible"
       className={`grid ${gridConfig.columns} ${gridConfig.gap}`}
     >
-      {displayWidgets.map((widget, index) => (
-        <motion.div key={index} variants={itemVariants}>
+      {displayWidgets.map((widget) => (
+        <motion.div key={widget.title} variants={itemVariants}>
           <DashboardWidget {...widget} />
         </motion.div>
       ))}

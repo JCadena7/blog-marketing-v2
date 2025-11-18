@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, X, Camera, Crop, Save, RotateCcw } from 'lucide-react';
+import { Upload, X, Save, RotateCcw } from 'lucide-react';
+
 import { useDropzone } from 'react-dropzone';
 import { uploadAvatar } from '../../services/profileService';
 import { useNotifications } from '../admin/AdminNotificationSystem';
@@ -83,6 +84,7 @@ const AvatarUploadModal: React.FC<AvatarUploadModalProps> = ({
       
       handleClose();
     } catch (error) {
+      console.error('Error al subir avatar:', error);
       addNotification({
         type: 'error',
         title: 'Error al subir imagen',

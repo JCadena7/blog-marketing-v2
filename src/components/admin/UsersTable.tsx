@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-import { CreditCard as Edit, Trash2, Shield, UserX, UserCheck, Search, MoveHorizontal as MoreHorizontal, Mail, Calendar, Users } from 'lucide-react';
+import { CreditCard as Edit, Trash2, Shield, UserX, UserCheck, Search, Mail, Calendar, Users } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { type User } from '../../data/mockUsers';
 import { getAllUsers, changeUserRole, updateUserStatus, deleteUser as deleteUserApi, getRoles } from '../../services/usersService';
@@ -65,7 +65,8 @@ const UsersTable: React.FC = () => {
         message: `El rol del usuario ha sido cambiado a ${newRole}.`
       });
       
-    } catch (e) {
+    } catch (error) {
+      console.error('Error al cambiar rol de usuario', error);
       addNotification({
         type: 'error',
         title: 'Error al cambiar rol',
@@ -102,7 +103,8 @@ const UsersTable: React.FC = () => {
         message: statusMessages[newStatus] || 'Estado del usuario actualizado'
       });
       
-    } catch (e) {
+    } catch (error) {
+      console.error('Error al actualizar estado de usuario', error);
       addNotification({
         type: 'error',
         title: 'Error',
@@ -287,7 +289,7 @@ const UsersTable: React.FC = () => {
                           stats.totalViews ? `Vistas: ${stats.totalViews}` : null,
                         ].filter(Boolean);
                         
-                        return items.length > 0 ? items.map((item, i) => <div key={i}>{item}</div>) : <div>—</div>;
+                        return items.length > 0 ? items.map((item) => <div key={item}>{item}</div>) : <div>—</div>;
                       })()}
                     </div>
                   </td>

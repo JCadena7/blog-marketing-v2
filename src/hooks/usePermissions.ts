@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
-import { ROLE_PERMISSIONS, type Permission, type Role } from '../data/rolePermissions';
+import { ROLE_PERMISSIONS, type Permission } from '../data/rolePermissions';
 
 
 export const usePermissions = () => {
@@ -9,10 +9,9 @@ export const usePermissions = () => {
 
   const hasPermission = (requiredPermission: Permission): boolean => {
     if (effectiveDemo) return true;
-    if (!user || !user.role) return false;
+    if (!user?.role) return false;
 
-    
-    const rolePermissions = ROLE_PERMISSIONS[user.role as Role];
+    const rolePermissions = ROLE_PERMISSIONS[user.role];
     
     // Creador tiene todos los permisos
     if (user.role === 'creador') return true;
@@ -38,7 +37,6 @@ export const usePermissions = () => {
     if (effectiveDemo) return true;
     if (!user) return false;
 
-    
     // Puede editar cualquier post
     if (hasPermission('editar_post_cualquiera')) return true;
     
@@ -51,7 +49,6 @@ export const usePermissions = () => {
   const canDeletePost = (postAuthorId: number): boolean => {
     if (!user) return false;
 
-    
     // Solo admin completo o creador pueden eliminar
     return hasPermission('admin_completo') || user.role === 'creador';
   };
@@ -79,7 +76,7 @@ export const usePermissions = () => {
     canDeletePost,
     canModerateComment,
     canChangeUserRole,
-    userRole: user?.role as Role,
+    userRole: user?.role,
     previewStrict,
     effectiveDemo
   };

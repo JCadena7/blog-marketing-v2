@@ -6,11 +6,23 @@ interface PostViewTrackerProps {
 }
 
 const PostViewTracker: React.FC<PostViewTrackerProps> = ({ postId }) => {
+  const getStorage = () => {
+    if (typeof globalThis === 'undefined') return null;
+    if (!('sessionStorage' in globalThis) || !('localStorage' in globalThis)) {
+      return null;
+    }
+    return {
+      session: globalThis.sessionStorage,
+      local: globalThis.localStorage
+    };
+  };
+
   useEffect(() => {
-    if (!postId || typeof window === 'undefined') return;
+    const storage = getStorage();
+    if (!postId || !storage) return;
 
     const storageKey = `viewed_post_${postId}`;
-    if (sessionStorage.getItem(storageKey)) {
+    if (storage.session.getItem(storageKey)) {
       return;
     }
 
@@ -18,7 +30,7 @@ const PostViewTracker: React.FC<PostViewTrackerProps> = ({ postId }) => {
 
     const getUserId = (): number | undefined => {
       try {
-        const raw = localStorage.getItem('user_data');
+        const raw = storage.local.getItem('user_data');
         if (!raw) return undefined;
         const parsed = JSON.parse(raw);
         return typeof parsed?.id === 'number' ? parsed.id : undefined;
@@ -33,7 +45,7 @@ const PostViewTracker: React.FC<PostViewTrackerProps> = ({ postId }) => {
     incrementarVista(postId, userId)
       .then((success) => {
         if (success && !cancelled) {
-          sessionStorage.setItem(storageKey, new Date().toISOString());
+          storage.session.setItem(storageKey, new Date().toISOString());
         }
       })
       .catch((error) => {

@@ -33,21 +33,25 @@ const baseStyles = 'inline-flex items-center justify-center font-medium rounded-
 const Button: React.FC<ButtonProps> = (props) => {
   const { variant = 'primary', size = 'md', loading = false, className = '', children, ...rest } = props;
 
-  const isLink = 'href' in props && typeof (props as MotionAnchorProps).href === 'string';
-  const isDisabled = ('disabled' in props ? (props as MotionButtonProps).disabled : false) || loading;
-  const variantKey = variant as keyof typeof variants;
-  const sizeKey = size as keyof typeof sizes;
-  const classes = `${baseStyles} ${variants[variantKey]} ${sizes[sizeKey]} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`;
+  const isLink = 'href' in rest;
+  const buttonDisabled = !isLink && 'disabled' in rest ? Boolean((rest as MotionButtonProps).disabled) : false;
+
+  const isDisabled = buttonDisabled || loading;
+
+  const variantClasses = variants[variant] ?? variants.primary;
+  const sizeClasses = sizes[size] ?? sizes.md;
+
+  const disabledClasses = isDisabled ? 'opacity-50 cursor-not-allowed' : '';
+  const classes = `${baseStyles} ${variantClasses} ${sizeClasses} ${disabledClasses} ${className}`;
 
   if (isLink) {
-    const anchorProps = rest as MotionAnchorProps;
     return (
       <motion.a
-        whileHover={!isDisabled ? { scale: 1.02 } : {}}
-        whileTap={!isDisabled ? { scale: 0.98 } : {}}
+        whileHover={isDisabled ? undefined : { scale: 1.02 }}
+        whileTap={isDisabled ? undefined : { scale: 0.98 }}
         className={classes}
         aria-disabled={isDisabled}
-        {...anchorProps}
+        {...(rest as MotionAnchorProps)}
       >
         {loading && (
           <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -60,14 +64,13 @@ const Button: React.FC<ButtonProps> = (props) => {
     );
   }
 
-  const buttonProps = rest as MotionButtonProps;
   return (
     <motion.button
-      whileHover={!isDisabled ? { scale: 1.02 } : {}}
-      whileTap={!isDisabled ? { scale: 0.98 } : {}}
+      whileHover={isDisabled ? undefined : { scale: 1.02 }}
+      whileTap={isDisabled ? undefined : { scale: 0.98 }}
       className={classes}
       disabled={isDisabled}
-      {...buttonProps}
+      {...(rest as MotionButtonProps)}
     >
       {loading && (
         <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">

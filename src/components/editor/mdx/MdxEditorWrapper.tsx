@@ -1,51 +1,45 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 type ToolbarVariant = 'basic' | 'full';
 
 interface MdxEditorProps {
-  id: string;
-  initialContent?: string;
-  onChange?: (content: string) => void;
-  placeholder?: string;
-  minHeight?: string;
-  maxHeight?: string;
-  className?: string;
-  toolbarVariant?: ToolbarVariant;
-  readOnly?: boolean;
-  showToolbar?: boolean;
+  readonly id: string;
+  readonly initialContent?: string;
+  readonly onChange?: (content: string) => void;
+  readonly placeholder?: string;
+  readonly minHeight?: string;
+  readonly maxHeight?: string;
+  readonly className?: string;
+  readonly toolbarVariant?: ToolbarVariant;
+  readonly readOnly?: boolean;
+  readonly showToolbar?: boolean;
 }
 
 const LazyMdxEditor = React.lazy(
   () => import('./MdxEditor')
 ) as React.LazyExoticComponent<React.ComponentType<MdxEditorProps>>;
 
-declare global {
-  interface Window {
-    getEditorContent?: (editorId: string) => string;
-  }
-}
+const EDITOR_CONTENT_KEY = 'getEditorContent' as const;
 
-/**
- * @typedef {Object} MdxEditorWrapperProps
- * @property {string} id - ID único para el editor
- * @property {string} [initialContent=''] - Contenido inicial del editor
- */
+type GlobalWithEditor = typeof globalThis & {
+  [EDITOR_CONTENT_KEY]?: (editorId: string) => string;
+};
 
 /**
  * Componente wrapper para el editor MDX
  * @param {MdxEditorWrapperProps} props
  */
 interface MdxEditorWrapperProps {
-  id: string;
-  initialContent?: string;
-  onChange?: (content: string) => void;
-  placeholder?: string;
-  minHeight?: string;
-  maxHeight?: string;
-  className?: string;
-  toolbarVariant?: ToolbarVariant;
-  readOnly?: boolean;
-  showToolbar?: boolean;
+  readonly id: string;
+  readonly initialContent?: string;
+  readonly onChange?: (content: string) => void;
+  readonly placeholder?: string;
+  readonly minHeight?: string;
+  readonly maxHeight?: string;
+  readonly className?: string;
+  readonly toolbarVariant?: ToolbarVariant;
+  readonly readOnly?: boolean;
+  readonly showToolbar?: boolean;
 }
 
 export default function MdxEditorWrapper({
@@ -61,27 +55,24 @@ export default function MdxEditorWrapper({
   showToolbar = true
 }: MdxEditorWrapperProps) {
   const contentRef = useRef<string>(initialContent);
-  const [isClient, setIsClient] = React.useState(false);
+  const [isClient, setIsClient] = useState(false);
 
-  // Agregar log para verificar el contenido inicial en el wrapper
-  // console.log('MdxEditorWrapper - Initial content:', initialContent);
+  const getGlobal = () => (typeof globalThis !== 'undefined' ? (globalThis as GlobalWithEditor) : undefined);
 
   useEffect(() => {
-    // console.log('MdxEditorWrapper - Setting up getEditorContent');
-    // Exponer la función getEditorContent al objeto window
-    window.getEditorContent = (editorId: string) => {
-      // console.log('getEditorContent called for id:', editorId);
-      if (editorId === id) {
-        // console.log('Returning content:', contentRef.current);
-        return contentRef.current;
-      }
-      return '';
-    };
+    const globalObj = getGlobal();
+    if (globalObj) {
+      globalObj[EDITOR_CONTENT_KEY] = (editorId: string) => {
+        if (editorId === id) {
+          return contentRef.current;
+        }
+        return '';
+      };
+    }
 
-    // Limpiar al desmontar
     return () => {
-      if (window.getEditorContent) {
-        delete window.getEditorContent;
+      if (globalObj) {
+        delete globalObj[EDITOR_CONTENT_KEY];
       }
     };
   }, [id]);
@@ -91,7 +82,6 @@ export default function MdxEditorWrapper({
   }, []);
 
   const handleChange = (content: string) => {
-    // console.log('MdxEditorWrapper - Content changed:', content);
     contentRef.current = content;
     onChange?.(content);
   };

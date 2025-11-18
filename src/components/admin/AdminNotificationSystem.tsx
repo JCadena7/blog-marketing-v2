@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
@@ -38,7 +39,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const addNotification = useCallback((notification: Omit<Notification, 'id'>) => {
-    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const id = Date.now().toString() + Math.random().toString(36).slice(2, 11);
+
     const newNotification: Notification = {
       id,
       duration: 5000,
@@ -65,8 +67,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     setNotifications([]);
   }, []);
 
+  const contextValue = useMemo(
+    () => ({ addNotification, removeNotification, clearAll }),
+    [addNotification, removeNotification, clearAll]
+  );
+
   return (
-    <NotificationContext.Provider value={{ addNotification, removeNotification, clearAll }}>
+    <NotificationContext.Provider value={contextValue}>
       {children}
       <NotificationContainer 
         notifications={notifications}

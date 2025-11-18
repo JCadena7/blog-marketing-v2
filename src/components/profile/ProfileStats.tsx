@@ -1,24 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Eye, Heart, MessageCircle, FileText, Users, Calendar, ChartBar as BarChart3 } from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  AreaChart, 
-  Area, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Legend
+import { TrendingUp, TrendingDown, Eye, Heart, MessageCircle, FileText } from 'lucide-react';
+import {
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
 } from 'recharts';
 import { getProfileStats } from '../../services/profileService';
 import Card from '../ui/Card';
-import Button from '../ui/Button';
 
 interface ProfileStatsProps {
   userId: number;
@@ -50,13 +46,14 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ userId }) => {
   ];
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
+  const skeletonMetricKeys = ['posts', 'views', 'likes', 'comments'];
 
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index} className="animate-pulse">
+          {skeletonMetricKeys.map((metricKey) => (
+            <Card key={`metric-skeleton-${metricKey}`} className="animate-pulse">
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3"></div>
               <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
               <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
@@ -189,23 +186,27 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ userId }) => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  // label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   label={(entry: any) => {
                     const name = entry?.name ?? '';
-                    // Aseguramos que percent sea number; si no, lo convertimos y caemos a 0
                     const rawPercent = entry?.percent;
                     const percentNum =
                       typeof rawPercent === 'number' ? rawPercent : Number(rawPercent) || 0;
-                
+
                     return `${name} ${Math.round(percentNum * 100)}%`;
                   }}
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {(stats?.postsByCategory || []).map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
+                  {(stats?.postsByCategory || []).map((entry: any) => {
+                    const entryKey = entry?.name ?? entry?.category ?? JSON.stringify(entry);
+                    return (
+                      <Cell
+                        key={`category-${entryKey}`}
+                        fill={COLORS[(entryKey.length || 0) % COLORS.length]}
+                      />
+                    );
+                  })}
                 </Pie>
                 <Tooltip />
               </PieChart>

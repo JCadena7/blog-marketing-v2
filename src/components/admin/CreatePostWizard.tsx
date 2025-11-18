@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, CreditCard as Edit, Search, Send, CircleCheck as CheckCircle, Clock, Eye, Calendar, Tag, Image as ImageIcon, TriangleAlert as AlertTriangle, ArrowLeft, ArrowRight, Save, X, Crown, Palette, Target } from 'lucide-react';
+import { FileText, CreditCard as Edit, Search, Send, CircleCheck as CheckCircle, Clock, Calendar, Tag, Image as ImageIcon, TriangleAlert as AlertTriangle, ArrowLeft, ArrowRight, Save, X, Crown, Target } from 'lucide-react';
+
 import { usePermissions } from '../../hooks/usePermissions';
 
 import { getAllCategories } from '../../services/categoriesService';
@@ -35,11 +36,12 @@ interface PostFormData {
 interface CreatePostWizardProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: PostFormData) => void;
+  onSubmit: (data: PostFormData) => Promise<void> | void;
 }
 
 const CreatePostWizard: React.FC<CreatePostWizardProps> = ({ isOpen, onClose, onSubmit }) => {
-  const { hasPermission, userRole } = usePermissions();
+  const { hasPermission } = usePermissions();
+
   const { addNotification } = useNotifications();
   const [currentStep, setCurrentStep] = useState(1);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -107,7 +109,7 @@ const CreatePostWizard: React.FC<CreatePostWizardProps> = ({ isOpen, onClose, on
         return;
       }
       
-      await onSubmit(formData);
+      await Promise.resolve(onSubmit(formData));
       resetForm();
       onClose();
     } finally {
@@ -386,7 +388,7 @@ const BasicInfoStep: React.FC<{
         <Input
           label="Título del Post"
           value={formData.title}
-          onChange={(e) => onChange({ ...formData, title: e.target.value })}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...formData, title: e.target.value })}
           placeholder="Ingresa un título atractivo para tu post..."
           className="text-lg font-medium"
           icon={<FileText size={20} className="text-gray-400" />}
@@ -404,12 +406,13 @@ const BasicInfoStep: React.FC<{
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label htmlFor="category-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Categoría
         </label>
         <select
+          id="category-select"
           value={formData.categoryId}
-          onChange={(e) => onChange({ ...formData, categoryId: e.target.value })}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange({ ...formData, categoryId: e.target.value })}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
           required
         >
@@ -427,12 +430,13 @@ const BasicInfoStep: React.FC<{
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Resumen / Excerpt
         </label>
         <textarea
+          id="excerpt"
           value={formData.excerpt}
-          onChange={(e) => onChange({ ...formData, excerpt: e.target.value })}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange({ ...formData, excerpt: e.target.value })}
           rows={3}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
           placeholder="Breve descripción que aparecerá en las tarjetas del blog..."
@@ -453,7 +457,7 @@ const BasicInfoStep: React.FC<{
         <Input
           label="Imagen Destacada (URL)"
           value={formData.featuredImage}
-          onChange={(e) => handleFeaturedImageUrlChange(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFeaturedImageUrlChange(e.target.value)}
           placeholder="https://images.pexels.com/..."
           icon={<ImageIcon size={20} className="text-gray-400" />}
           disabled={Boolean(formData.featuredImageFile)}
@@ -639,7 +643,7 @@ const SEOStep: React.FC<{
           <Input
             label="Meta Title"
             value={formData.metaTitle || formData.title}
-            onChange={(e) => onChange({ ...formData, metaTitle: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...formData, metaTitle: e.target.value })}
             placeholder="Título optimizado para SEO..."
             icon={<Target size={20} className="text-gray-400" />}
           />
@@ -659,7 +663,7 @@ const SEOStep: React.FC<{
           <Input
             label="Palabra Clave Principal"
             value={formData.focusKeyword}
-            onChange={(e) => onChange({ ...formData, focusKeyword: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...formData, focusKeyword: e.target.value })}
             placeholder="ej. marketing digital 2024"
             icon={<Search size={20} className="text-gray-400" />}
           />
@@ -671,12 +675,13 @@ const SEOStep: React.FC<{
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label htmlFor="meta-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Meta Description
         </label>
         <textarea
+          id="meta-description"
           value={formData.metaDescription || formData.excerpt}
-          onChange={(e) => onChange({ ...formData, metaDescription: e.target.value })}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange({ ...formData, metaDescription: e.target.value })}
           rows={3}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
           placeholder="Descripción para motores de búsqueda..."
@@ -701,7 +706,7 @@ const SEOStep: React.FC<{
         <GooglePreview
           title={formData.metaTitle || formData.title || 'Título del post'}
           description={formData.metaDescription || formData.excerpt || 'Descripción del post...'}
-          url={`https://marketing-digital-pro.com/blog/${formData.title.toLowerCase().replace(/\s+/g, '-')}`}
+          url={`https://marketing-digital-pro.com/blog/${formData.title.toLowerCase().replaceAll(/\s+/g, '-')}`}
         />
       </motion.div>
     </div>
@@ -738,12 +743,13 @@ const PublishStep: React.FC<{
       
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Estado
           </label>
           <select
+            id="status"
             value={formData.status}
-            onChange={(e) => onChange({ ...formData, status: e.target.value as any })}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange({ ...formData, status: e.target.value as PostFormData['status'] })}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
           >
             <option value="draft">Borrador</option>
@@ -766,7 +772,7 @@ const PublishStep: React.FC<{
               label="Fecha y Hora de Publicación"
               type="datetime-local"
               value={formData.publishDate || ''}
-              onChange={(e) => onChange({ ...formData, publishDate: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...formData, publishDate: e.target.value })}
               icon={<Calendar size={20} className="text-gray-400" />}
             />
           </motion.div>
@@ -780,7 +786,7 @@ const PublishStep: React.FC<{
             <input
               type="checkbox"
               checked={formData.allowComments}
-              onChange={(e) => onChange({ ...formData, allowComments: e.target.checked })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...formData, allowComments: e.target.checked })}
               className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
             />
             <span className="text-sm text-gray-700 dark:text-gray-300">Permitir comentarios</span>
@@ -793,7 +799,7 @@ const PublishStep: React.FC<{
             <input
               type="checkbox"
               checked={formData.featured}
-              onChange={(e) => onChange({ ...formData, featured: e.target.checked })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...formData, featured: e.target.checked })}
               className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
             />
             <div className="flex items-center space-x-2">
@@ -809,7 +815,7 @@ const PublishStep: React.FC<{
             <input
               type="checkbox"
               checked={formData.notifySubscribers}
-              onChange={(e) => onChange({ ...formData, notifySubscribers: e.target.checked })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...formData, notifySubscribers: e.target.checked })}
               className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
             />
             <span className="text-sm text-gray-700 dark:text-gray-300">Notificar suscriptores por email</span>
@@ -897,7 +903,7 @@ const TagsEditor: React.FC<{
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label htmlFor="tags-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
         Tags del Post
       </label>
       
@@ -927,13 +933,14 @@ const TagsEditor: React.FC<{
       <div className="relative">
         <div className="flex space-x-2">
           <input
+            id="tags-input"
             type="text"
             value={newTag}
-            onChange={(e) => {
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setNewTag(e.target.value);
               setShowSuggestions(e.target.value.length > 0);
             }}
-            onKeyPress={(e) => {
+            onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
                 addTag(newTag);
@@ -1139,12 +1146,11 @@ const SEORecommendations: React.FC<{ formData: PostFormData }> = ({ formData }) 
         <span className="text-sm font-medium">Recomendaciones SEO:</span>
       </div>
       <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-        {recommendations.map((rec, index) => (
+        {recommendations.map((rec) => (
           <motion.li
-            key={index}
+            key={rec}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
             className="flex items-center"
           >
             <span className="w-1.5 h-1.5 bg-orange-400 rounded-full mr-3"></span>
@@ -1188,9 +1194,9 @@ const ContentValidation: React.FC<{ content: string }> = ({ content }) => {
   return (
     <div className="space-y-2">
       {/* Errores críticos */}
-      {issues.map((issue, index) => (
+      {issues.map((issue) => (
         <motion.div
-          key={`issue-${index}`}
+          key={issue}
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center space-x-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2"
@@ -1201,12 +1207,11 @@ const ContentValidation: React.FC<{ content: string }> = ({ content }) => {
       ))}
 
       {/* Warnings */}
-      {warnings.map((warning, index) => (
+      {warnings.map((warning) => (
         <motion.div
-          key={`warning-${index}`}
+          key={warning}
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: index * 0.1 }}
           className="flex items-center space-x-2 text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg px-3 py-2"
         >
           <AlertTriangle size={16} />

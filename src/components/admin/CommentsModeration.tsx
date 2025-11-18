@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { CircleCheck as CheckCircle, Circle as XCircle, TriangleAlert as AlertTriangle, Trash2, Search, ListFilter as Filter, MessageCircle, User, Calendar } from 'lucide-react';
+import { CircleCheck as CheckCircle, Circle as XCircle, TriangleAlert as AlertTriangle, Trash2, Search, MessageCircle, Calendar } from 'lucide-react';
+
 import { usePermissions } from '../../hooks/usePermissions';
 import { type Comment } from '../../data/mockComments';
 import { getAllComments, updateCommentStatus as updateCommentStatusApi, deleteComment as deleteCommentApi } from '../../services/commentsService';
@@ -38,8 +39,7 @@ const CommentsModeration: React.FC = () => {
     if (hasPermission('admin_completo')) {
       // Ver todos los comentarios
     } else if (userRole === 'editor') {
-      // Comentarios en posts que puede editar
-      filtered = filtered; // En una app real, filtrarías por posts editables
+      // Comentarios en posts que puede editar (pendiente implementar filtrado real)
     } else if (hasPermission('editar_post_propio')) {
       // Solo comentarios en sus propios posts (asumiendo userId = 3)
       filtered = filtered.filter(comment => {
@@ -98,6 +98,7 @@ const CommentsModeration: React.FC = () => {
       });
       
     } catch (e) {
+      console.error('Failed to moderate comment', e);
       addNotification({
         type: 'error',
         title: 'Error de moderación',
