@@ -27,7 +27,7 @@ const Header: React.FC = () => {
     { name: 'Inicio', href: '/' },
     { name: 'Blog', href: '/blog' },
     { name: 'Herramientas', href: '/herramientas' },
-    { name: 'Dashboard', href: '/dashboard' },
+    // { name: 'Dashboard', href: '/dashboard' },
     { name: 'Servicios', href: '/servicios' },
     { name: 'Sobre', href: '/sobre' },
   ];
@@ -82,7 +82,7 @@ const Header: React.FC = () => {
             </Button>
             
             <Button href="/auth" variant="outline">
-              Admin
+              Dashboard
             </Button>
           </div>
 
@@ -129,7 +129,7 @@ const Header: React.FC = () => {
                     Contactar
                   </Button>
                   <Button className="w-full mt-2" href="/auth" variant="outline">
-                    Admin
+                    Dashboard
                   </Button>
                 </div>
               </div>
