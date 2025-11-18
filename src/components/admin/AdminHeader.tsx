@@ -24,7 +24,9 @@ const AdminHeader: React.FC = () => {
 
   useEffect(() => {
     const theme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const prefersDark = typeof globalThis !== 'undefined' && 'matchMedia' in globalThis
+      ? globalThis.matchMedia('(prefers-color-scheme: dark)').matches
+      : false;
     const shouldUseDark = theme ? theme === 'dark' : prefersDark;
     setIsDark(shouldUseDark);
   }, []);

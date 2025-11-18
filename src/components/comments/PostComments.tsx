@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, ThumbsUp, Flag, Reply, Send, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Loader, Import as SortAsc, Dessert as SortDesc } from 'lucide-react';
+import { MessageCircle, CircleAlert as AlertCircle, CircleCheck as CheckCircle } from 'lucide-react';
 import { getCommentsByPostId, createComment } from '../../services/commentsService';
 import { type Comment } from '../../data/mockComments';
 import { useAuth } from '../../hooks/useAuth';
@@ -63,13 +63,14 @@ const PostComments: React.FC<PostCommentsProps> = ({
       return;
     }
 
-    if (typeof window === 'undefined') {
+    const storageAvailable = typeof globalThis !== 'undefined' && 'localStorage' in globalThis && globalThis.localStorage;
+    if (!storageAvailable) {
       setActiveUser(null);
       return;
     }
 
     try {
-      const stored = localStorage.getItem('user_data');
+      const stored = globalThis.localStorage?.getItem('user_data');
       if (stored) {
         const parsed = JSON.parse(stored);
         setActiveUser(normalizeUser(parsed));
@@ -77,7 +78,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
         setActiveUser(null);
       }
     } catch (error) {
-      console.warn('PostComments: no se pudo leer user_data de localStorage', error);
+      console.error('Error fetching user data from localStorage:', error);
       setActiveUser(null);
     }
   }, [contextUser]);
@@ -156,6 +157,7 @@ const PostComments: React.FC<PostCommentsProps> = ({
 
       // Reset form feedback will happen in CommentForm component
     } catch (error) {
+      console.error('Error al publicar comentario:', error);
       setNotification({
         type: 'error',
         message: 'Error al publicar comentario'

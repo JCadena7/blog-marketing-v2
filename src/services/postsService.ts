@@ -1,11 +1,18 @@
 import { mockPosts } from '../data/mockPosts';
 import { useRealApi, API_CONFIG } from '../config/api';
 import { apiClient } from '../lib/apiClient';
-import { type Post, type PostBackend, type PostStatus } from '../types';
+import { type Post, type PostBackend } from '../types';
 import { getAllEstados, type Estado } from './estadosService';
 
 // In-memory store for mockup purposes
 let postsStore: Post[] = [...mockPosts];
+
+type BulkActionType = 'publish' | 'draft' | 'delete';
+
+const getStorage = (): Storage | null =>
+  typeof globalThis !== 'undefined' && 'localStorage' in globalThis && globalThis.localStorage
+    ? globalThis.localStorage
+    : null;
 
 type UploadPostImageResponse = {
   imagen_destacada?: string;
@@ -35,7 +42,7 @@ async function getEstadosMap(): Promise<Record<string, number>> {
   }
   
   const map: Record<string, number> = {};
-  estadosCache.forEach(estado => {
+  for (const estado of estadosCache) {
     const nombre = estado.nombre.toLowerCase();
     // Mapeo exacto según los estados del backend:
     // 1: borrador
@@ -52,7 +59,7 @@ async function getEstadosMap(): Promise<Record<string, number>> {
     } else if (nombre === 'rechazado' || nombre.includes('rejected')) {
       map['rejected'] = estado.id;
     }
-  });
+  }
   
   console.log('🗺️ Mapeo de estados creado:', map);
   return map;
@@ -182,10 +189,11 @@ function transformPostFromBackend(backendPost: PostBackend): Post {
  * Obtiene el ID del usuario actual desde localStorage
  */
 function getCurrentUserId(): number {
-  if (typeof window === 'undefined') return 3; // Valor por defecto en SSR
-  
+  const storage = getStorage();
+  if (!storage) return 3;
+
   try {
-    const userData = localStorage.getItem('user_data');
+    const userData = storage.getItem('user_data');
     if (userData) {
       const user = JSON.parse(userData);
       return user.id || 3;
@@ -193,7 +201,7 @@ function getCurrentUserId(): number {
   } catch (error) {
     console.error('Error al obtener usuario actual:', error);
   }
-  
+
   return 3; // Valor por defecto si no hay usuario
 }
 
@@ -204,73 +212,83 @@ function generateSlug(title: string): string {
   return title
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
-    .replace(/[^a-z0-9\s-]/g, '') // Eliminar caracteres especiales
+    .replaceAll(/[\u0300-\u036f]/g, '') // Eliminar acentos
+    .replaceAll(/[^a-z0-9\s-]/g, '') // Eliminar caracteres especiales
     .trim()
-    .replace(/\s+/g, '-') // Reemplazar espacios con guiones
-    .replace(/-+/g, '-') // Eliminar guiones duplicados
+    .replaceAll(/\s+/g, '-') // Reemplazar espacios con guiones
+    .replaceAll(/-+/g, '-') // Eliminar guiones duplicados
     .substring(0, 255); // Limitar a 255 caracteres
+}
+
+function resolveSlug(post: Partial<Post>): string | undefined {
+  if (post.slug) return post.slug;
+  if (post.title) return generateSlug(post.title);
+  return undefined;
+}
+
+function resolveEstadoId(post: Partial<Post>): number {
+  if (post.status) {
+    return mapStatusToEstadoId(post.status);
+  }
+  return post.estadoId ?? 1;
+}
+
+type BackendPayload = Partial<PostBackend> & Record<string, unknown>;
+
+function assignSeoFields(post: Partial<Post>, backendData: BackendPayload) {
+  if (!post.seo) return;
+  if (post.seo.metaTitle !== undefined) backendData.meta_title = post.seo.metaTitle;
+  if (post.seo.metaDescription !== undefined) backendData.meta_description = post.seo.metaDescription;
+  if (post.seo.focusKeyword !== undefined) backendData.focus_keyword = post.seo.focusKeyword;
+  if (post.seo.readabilityScore !== undefined) backendData.readabilityScore = post.seo.readabilityScore;
+}
+
+function assignOptionalFields(post: Partial<Post>, backendData: BackendPayload) {
+  const fieldMap: Array<[keyof Post, keyof PostBackend]> = [
+    ['content', 'contenido'],
+    ['excerpt', 'extracto'],
+    ['featuredImage', 'imagen_destacada'],
+    ['publishedAt', 'fecha_publicacion'],
+    ['readTime', 'tiempo_lectura']
+  ];
+
+  for (const [sourceKey, targetKey] of fieldMap) {
+    const value = post[sourceKey];
+    if (value !== undefined) {
+      (backendData as any)[targetKey] = value;
+    }
+  }
+
+  if (post.categoryId !== undefined) {
+    backendData.categoria_ids = [post.categoryId];
+  }
+
+  if (post.tags && post.tags.length > 0) {
+    backendData.new_keywords = post.tags;
+  }
 }
 
 /**
  * Transforma un post del frontend (camelCase) al formato del backend (snake_case)
  */
 function transformPostToBackend(post: Partial<Post>): Partial<PostBackend> {
-  const backendData: any = {};
-  
-  // Campos requeridos
-  if (post.title !== undefined) backendData.titulo = post.title;
-  
-  // Generar slug automáticamente si no existe
-  if (post.slug !== undefined) {
-    backendData.slug = post.slug;
-  } else if (post.title !== undefined) {
-    backendData.slug = generateSlug(post.title);
+  const backendData: BackendPayload = {};
+
+  if (post.title !== undefined) {
+    backendData.titulo = post.title;
   }
-  
-  // usuario_id es requerido - obtener del usuario actual
-  if (post.authorId !== undefined) {
-    backendData.usuario_id = post.authorId;
-  } else {
-    backendData.usuario_id = getCurrentUserId(); // Obtener del localStorage
+
+  const slug = resolveSlug(post);
+  if (slug) {
+    backendData.slug = slug;
   }
-  
-  // estado_id es requerido
-  if (post.status !== undefined) {
-    backendData.estado_id = mapStatusToEstadoId(post.status);
-  } else if (post.estadoId !== undefined) {
-    backendData.estado_id = post.estadoId;
-  } else {
-    backendData.estado_id = 1; // Draft por defecto
-  }
-  
-  // Campos opcionales
-  if (post.content !== undefined) backendData.contenido = post.content;
-  if (post.excerpt !== undefined) backendData.extracto = post.excerpt;
-  if (post.featuredImage !== undefined) backendData.imagen_destacada = post.featuredImage;
-  if (post.publishedAt !== undefined) backendData.fecha_publicacion = post.publishedAt;
-  if (post.readTime !== undefined) backendData.tiempo_lectura = post.readTime;
-  
-  // Categorías - el backend espera categoria_ids (array)
-  if (post.categoryId !== undefined) {
-    backendData.categoria_ids = [post.categoryId];
-  }
-  
-  // Tags - el backend espera new_keywords (array de strings)
-  if (post.tags !== undefined && post.tags.length > 0) {
-    backendData.new_keywords = post.tags;
-  }
-  
-  // Campos SEO - van directamente en el DTO, no anidados
-  if (post.seo) {
-    if (post.seo.metaTitle !== undefined) backendData.meta_title = post.seo.metaTitle;
-    if (post.seo.metaDescription !== undefined) backendData.meta_description = post.seo.metaDescription;
-    if (post.seo.focusKeyword !== undefined) backendData.focus_keyword = post.seo.focusKeyword;
-    if (post.seo.readabilityScore !== undefined) backendData.readabilityScore = post.seo.readabilityScore;
-  }
-  
-  // NO enviar featured, allowComments, isPinned - no existen en el backend DTO
-  
+
+  backendData.usuario_id = post.authorId ?? getCurrentUserId();
+  backendData.estado_id = resolveEstadoId(post);
+
+  assignOptionalFields(post, backendData);
+  assignSeoFields(post, backendData);
+
   return backendData;
 }
 
@@ -316,7 +334,7 @@ async function updatePostMock(postId: number, postData: Partial<Post>): Promise<
 
 async function bulkActionMock(
   ids: number[],
-  action: 'publish' | 'draft' | 'delete'
+  action: BulkActionType
 ): Promise<void> {
   await delay(250);
   if (action === 'delete') {
@@ -408,7 +426,7 @@ async function deletePostApi(postId: number): Promise<boolean> {
 
 async function bulkActionApi(
   ids: number[],
-  action: 'publish' | 'draft' | 'delete'
+  action: BulkActionType
 ): Promise<void> {
   try {
     await apiClient.post(`${API_CONFIG.ENDPOINTS.POSTS as string}/bulk`, {
@@ -426,7 +444,7 @@ async function createPostMock(postData: Partial<Post>): Promise<Post> {
   const newPost: Post = {
     id: Date.now(),
     title: postData.title || '',
-    slug: postData.slug || postData.title?.toLowerCase().replace(/\s+/g, '-') || '',
+    slug: postData.slug || postData.title?.toLowerCase().replaceAll(/\s+/g, '-') || '',
     content: postData.content || '',
     excerpt: postData.excerpt || '',
     status: postData.status || 'draft',
@@ -516,7 +534,7 @@ export async function deletePost(postId: number): Promise<boolean> {
 
 export async function bulkAction(
   ids: number[],
-  action: 'publish' | 'draft' | 'delete'
+  action: BulkActionType
 ): Promise<void> {
   return useRealApi() ? bulkActionApi(ids, action) : bulkActionMock(ids, action);
 }

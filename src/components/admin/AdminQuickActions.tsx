@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, FileText, Users, MessageCircle, Folder, Zap, Clock, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, ChartBar as BarChart3 } from 'lucide-react';
+import { FileText, Users, MessageCircle, Folder, Zap, Clock, ChartBar as BarChart3 } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useNotifications } from './AdminNotificationSystem';
 import CreatePostWizard from './CreatePostWizard';
-import Button from '../ui/Button';
 import Card from '../ui/Card';
 
 interface QuickAction {
@@ -24,6 +23,12 @@ const AdminQuickActions: React.FC = () => {
   const [loading, setLoading] = useState<string | null>(null);
   const [showCreateWizard, setShowCreateWizard] = useState(false);
 
+  const navigateSafely = (path: string) => {
+    if (typeof globalThis !== 'undefined' && 'location' in globalThis && globalThis.location) {
+      globalThis.location.assign(path);
+    }
+  };
+
   const quickActions: QuickAction[] = [
     {
       id: 'create-post',
@@ -42,7 +47,7 @@ const AdminQuickActions: React.FC = () => {
       color: 'bg-purple-500 hover:bg-purple-600',
       permission: ['comentar', 'admin_completo'],
       action: () => {
-        window.location.href = '/admin/comentarios?filter=pending';
+        navigateSafely('/admin/comentarios?filter=pending');
       },
       badge: 5
     },
@@ -54,7 +59,7 @@ const AdminQuickActions: React.FC = () => {
       color: 'bg-orange-500 hover:bg-orange-600',
       permission: ['publicar_post'],
       action: () => {
-        window.location.href = '/admin/posts?filter=pending';
+        navigateSafely('/admin/posts?filter=pending');
       },
       badge: 3
     },
@@ -66,7 +71,7 @@ const AdminQuickActions: React.FC = () => {
       color: 'bg-green-500 hover:bg-green-600',
       permission: ['crear_categoria'],
       action: () => {
-        window.location.href = '/admin/categorias?action=create';
+        navigateSafely('/admin/categorias?action=create');
       }
     },
     {
@@ -77,7 +82,7 @@ const AdminQuickActions: React.FC = () => {
       color: 'bg-indigo-500 hover:bg-indigo-600',
       permission: ['admin_completo'],
       action: () => {
-        window.location.href = '/admin/usuarios/nuevo';
+        navigateSafely('/admin/usuarios/nuevo');
       }
     },
     {
@@ -88,10 +93,11 @@ const AdminQuickActions: React.FC = () => {
       color: 'bg-teal-500 hover:bg-teal-600',
       permission: ['admin_completo', 'editar_post_cualquiera'],
       action: () => {
-        window.location.href = '/admin/analytics';
+        navigateSafely('/admin/analytics');
       }
     }
   ];
+
   const availableActions = quickActions.filter(action => 
     !action.permission || hasAnyPermission(action.permission as any)
   );
@@ -102,6 +108,7 @@ const AdminQuickActions: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 300)); // Simular delay
       actionFn();
     } catch (error) {
+      console.error('Error executing quick action', error);
       addNotification({
         type: 'error',
         title: 'Error',
@@ -255,7 +262,7 @@ const generateTrendData = () => {
   }));
 };
 
-const getQuickStatForRole = (metric: string, userRole: string): string | number => {
+const getQuickStatForRole = (metric: string, userRole?: string): string | number => {
   const stats = {
     creador: { posts: 156, comments: 1247, views: '125K', engagement: 68 },
     administrador: { posts: 156, comments: 1247, views: '125K', engagement: 68 },
@@ -265,7 +272,8 @@ const getQuickStatForRole = (metric: string, userRole: string): string | number 
     comentador: { posts: 0, comments: 23, views: '0', engagement: 45 }
   };
 
-  return stats[userRole as keyof typeof stats]?.[metric as keyof typeof stats.creador] || 0;
+  const resolvedRole: keyof typeof stats = (userRole && userRole in stats ? userRole : 'comentador') as keyof typeof stats;
+  return stats[resolvedRole]?.[metric as keyof typeof stats.creador] || 0;
 };
 
 export default AdminQuickActions;

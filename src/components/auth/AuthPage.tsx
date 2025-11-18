@@ -19,8 +19,8 @@ const AuthPage: React.FC = () => {
 
   // Check if user is new and should see onboarding
   useEffect(() => {
-    if (user && typeof window !== 'undefined') {
-      const isNewUser = new URLSearchParams(window.location.search).get('new') === 'true';
+    if (user && typeof globalThis !== 'undefined' && 'location' in globalThis && globalThis.location) {
+      const isNewUser = new URLSearchParams(globalThis.location.search).get('new') === 'true';
       const onboardingCompleted = localStorage.getItem('onboarding_completed') === 'true';
       
       if (isNewUser && !onboardingCompleted) {
@@ -31,14 +31,16 @@ const AuthPage: React.FC = () => {
 
   // Redirect if already authenticated (unless showing onboarding)
   useEffect(() => {
-    if (isAuthenticated && !loading && !showOnboarding) {
-      window.location.href = '/admin/dashboard';
+    if (isAuthenticated && !loading && !showOnboarding && typeof globalThis !== 'undefined' && 'location' in globalThis && globalThis.location) {
+      globalThis.location.href = '/admin/dashboard';
     }
   }, [isAuthenticated, loading, showOnboarding]);
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
-    window.location.href = '/admin/dashboard';
+    if (typeof globalThis !== 'undefined' && 'location' in globalThis && globalThis.location) {
+      globalThis.location.href = '/admin/dashboard';
+    }
   };
   
   // Show loading state

@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent } from 'react';
-import { motion } from 'framer-motion';
-import { Save, Eye, ArrowLeft, Clock, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, FileText, Tag } from 'lucide-react'
+import { Eye, ArrowLeft, Clock, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { type Post } from '../../data/mockPosts';
 import { getAllCategories } from '../../services/categoriesService';
-import {type Category } from '../../data/mockCategories';
+import { type Category } from '../../data/mockCategories';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Card from '../ui/Card';
@@ -14,12 +13,12 @@ import { useNotifications } from './AdminNotificationSystem';
 
 interface PostEditorProps {
   post?: Post;
-  onSave: (postData: Partial<Post>) => void;
+  onSave: (postData: Partial<Post>) => void | Promise<void>;
   onCancel: () => void;
 }
 
 const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
-  const { hasPermission, userRole } = usePermissions();
+  const { hasPermission } = usePermissions();
   const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState({
     title: '',
@@ -127,6 +126,7 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
       setAutoSaveStatus('saved');
       setTimeout(() => setAutoSaveStatus(null), 3000);
     } catch (error) {
+      console.error('Auto-save failed', error);
       setAutoSaveStatus('error');
       setTimeout(() => setAutoSaveStatus(null), 5000);
     }
@@ -147,7 +147,6 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
   };
 
   const canPublish = hasPermission('publicar_post');
-  const canSaveDraft = hasPermission('crear_post') || hasPermission('editar_post_propio');
   const canReject = hasPermission('publicar_post'); // Solo editores/admins pueden rechazar
   
   // Determinar qué estados puede seleccionar el usuario
@@ -264,10 +263,11 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
               />
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="post-content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Contenido
                 </label>
                 <textarea
+                  id="post-content"
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   rows={20}
@@ -292,10 +292,11 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="post-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Estado
                 </label>
                 <select
+                  id="post-status"
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as Post['status'] })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
@@ -314,10 +315,11 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="post-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Categoría
                 </label>
                 <select
+                  id="post-category"
                   value={formData.categoryId}
                   onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
@@ -376,10 +378,11 @@ const PostEditor: React.FC<PostEditorProps> = ({ post, onSave, onCancel }) => {
               />
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="post-meta-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Meta Description
                 </label>
                 <textarea
+                  id="post-meta-description"
                   value={formData.metaDescription}
                   onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
                   rows={3}
@@ -433,9 +436,9 @@ const TagsEditor: React.FC<{
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {tags.map((tag, index) => (
+        {tags.map((tag) => (
           <span
-            key={index}
+            key={tag}
             className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-100 text-primary-800 dark:bg-primary-900/20 dark:text-primary-300"
           >
             {tag}
@@ -454,7 +457,12 @@ const TagsEditor: React.FC<{
           type="text"
           value={newTag}
           onChange={(e) => setNewTag(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              addTag();
+            }
+          }}
           className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
           placeholder="Agregar tag..."
         />

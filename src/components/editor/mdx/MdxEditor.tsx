@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import '@mdxeditor/editor/style.css';
-// import { MDXEditor } from '@mdxeditor/editor';
+
 import {
   MDXEditor,
   headingsPlugin,
@@ -32,17 +32,78 @@ import {
   ConditionalContents
 } from '@mdxeditor/editor';
 
-/**
- * @typedef {Object} MdxEditorProps
- * @property {string} [initialContent=''] - Contenido inicial del editor
- * @property {function} onChange - Función que se llama cuando cambia el contenido
- * @property {string} id - ID único para el editor
- */
+type MdxEditorProps = {
+  readonly initialContent?: string;
+  readonly onChange?: (content: string) => void;
+  readonly id: string;
+  readonly placeholder?: string;
+  readonly minHeight?: string;
+  readonly maxHeight?: string;
+  readonly className?: string;
+  readonly toolbarVariant?: 'basic' | 'full';
+  readonly readOnly?: boolean;
+  readonly showToolbar?: boolean;
+};
 
-/**
- * Componente del editor MDX
- * @param {MdxEditorProps} props
- */
+const ToolbarContentsBasic: React.FC = () => (
+  <div className="flex flex-wrap gap-2 p-2">
+    <div className="flex items-center gap-1 border-r pr-2">
+      <BoldItalicUnderlineToggles />
+    </div>
+    <div className="flex items-center gap-1 border-r pr-2">
+      <ListsToggle />
+    </div>
+    <div className="flex items-center gap-1 border-r pr-2">
+      <CreateLink />
+      <InsertImage />
+    </div>
+    <div className="flex items-center gap-1">
+      <UndoRedo />
+    </div>
+  </div>
+);
+
+const ToolbarContentsFull: React.FC = () => (
+  <div className="flex flex-wrap gap-2 p-2">
+    <div className="flex items-center gap-1 border-r pr-2">
+      <BlockTypeSelect />
+    </div>
+    <div className="flex items-center gap-1 border-r pr-2">
+      <BoldItalicUnderlineToggles />
+      <StrikeThroughSupSubToggles />
+    </div>
+    <div className="flex items-center gap-1 border-r pr-2">
+      <ListsToggle />
+    </div>
+    <div className="flex items-center gap-1 border-r pr-2">
+      <CreateLink />
+      <InsertImage />
+      <InsertTable />
+    </div>
+    <div className="flex items-center gap-1 border-r pr-2">
+      <ConditionalContents
+        options={[
+          {
+            when: (editor: any) => editor?.editorType === 'codeblock',
+            contents: () => <ChangeCodeMirrorLanguage />
+          },
+          {
+            fallback: () => <InsertCodeBlock />
+          }
+        ]}
+      />
+    </div>
+    <div className="flex items-center gap-1 border-r pr-2">
+      <InsertFrontmatter />
+    </div>
+    <div className="flex items-center gap-1">
+      <DiffSourceToggleWrapper>
+        <UndoRedo />
+      </DiffSourceToggleWrapper>
+    </div>
+  </div>
+);
+
 export default function MdxEditor({
   initialContent = '',
   onChange,
@@ -54,31 +115,16 @@ export default function MdxEditor({
   toolbarVariant = 'full',
   readOnly = false,
   showToolbar = true
-}: {
-  initialContent?: string;
-  onChange?: (content: string) => void;
-  id: string;
-  placeholder?: string;
-  minHeight?: string;
-  maxHeight?: string;
-  className?: string;
-  toolbarVariant?: 'basic' | 'full';
-  readOnly?: boolean;
-  showToolbar?: boolean;
-}) {
+}: MdxEditorProps) {
   const handleChange = useCallback((content: string) => {
-    // console.log('Editor content changed:', content);
     if (onChange) {
       onChange(content);
     }
   }, [onChange]);
 
   const handleEditorError = (error: unknown) => {
-    // console.error('Editor error:', error);
+    console.error('MDXEditor error:', error);
   };
-
-  // Agregar log para verificar el contenido inicial
-  // console.log('Initial content received:', initialContent);
 
   const basePlugins = [
     headingsPlugin(),
@@ -109,72 +155,13 @@ export default function MdxEditor({
     diffSourcePlugin()
   ];
 
-  const toolbarContentsBasic = (
-    <div className="flex flex-wrap gap-2 p-2">
-      <div className="flex items-center gap-1 border-r pr-2">
-        <BoldItalicUnderlineToggles />
-      </div>
-      <div className="flex items-center gap-1 border-r pr-2">
-        <ListsToggle />
-      </div>
-      <div className="flex items-center gap-1 border-r pr-2">
-        <CreateLink />
-        <InsertImage />
-      </div>
-      <div className="flex items-center gap-1">
-        <UndoRedo />
-      </div>
-    </div>
-  );
-
-  const toolbarContentsFull = (
-    <div className="flex flex-wrap gap-2 p-2">
-      <div className="flex items-center gap-1 border-r pr-2">
-        <BlockTypeSelect />
-      </div>
-      <div className="flex items-center gap-1 border-r pr-2">
-        <BoldItalicUnderlineToggles />
-        <StrikeThroughSupSubToggles />
-      </div>
-      <div className="flex items-center gap-1 border-r pr-2">
-        <ListsToggle />
-      </div>
-      <div className="flex items-center gap-1 border-r pr-2">
-        <CreateLink />
-        <InsertImage />
-        <InsertTable />
-      </div>
-      <div className="flex items-center gap-1 border-r pr-2">
-        <ConditionalContents
-          options={[
-            {
-              when: (editor: any) => editor?.editorType === 'codeblock',
-              contents: () => <ChangeCodeMirrorLanguage />
-            },
-            {
-              fallback: () => <InsertCodeBlock />
-            }
-          ]}
-        />
-      </div>
-      <div className="flex items-center gap-1 border-r pr-2">
-        <InsertFrontmatter />
-      </div>
-      <div className="flex items-center gap-1">
-        <DiffSourceToggleWrapper>
-          <UndoRedo />
-        </DiffSourceToggleWrapper>
-      </div>
-    </div>
-  );
-
   const plugins = [
     ...basePlugins,
     ...(toolbarVariant === 'full' ? fullOnlyPlugins : []),
     ...(showToolbar
       ? [
           toolbarPlugin({
-            toolbarContents: () => (toolbarVariant === 'full' ? toolbarContentsFull : toolbarContentsBasic)
+            toolbarContents: () => (toolbarVariant === 'full' ? <ToolbarContentsFull /> : <ToolbarContentsBasic />)
           })
         ]
       : [])

@@ -83,6 +83,7 @@ const CoverUploadModal: React.FC<CoverUploadModalProps> = ({
       
       handleClose();
     } catch (error) {
+      console.error('Error al subir portada:', error);
       addNotification({
         type: 'error',
         title: 'Error al subir imagen',
@@ -106,6 +107,7 @@ const CoverUploadModal: React.FC<CoverUploadModalProps> = ({
       
       handleClose();
     } catch (error) {
+      console.error('Error al eliminar portada:', error);
       addNotification({
         type: 'error',
         title: 'Error',

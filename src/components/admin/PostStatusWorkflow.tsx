@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  FileText, 
   Clock, 
   CheckCircle, 
   XCircle, 
   Edit, 
   Send,
-  ArrowRight,
-  User,
-  Calendar,
   MessageSquare
 } from 'lucide-react';
 import { type Post } from '../../data/mockPosts';
 import { type PostStatus } from '../../types';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../hooks/useAuth';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
 
@@ -24,9 +21,13 @@ interface PostStatusWorkflowProps {
 }
 
 const PostStatusWorkflow: React.FC<PostStatusWorkflowProps> = ({ post, onStatusChange }) => {
-  const { hasPermission, userRole } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const { user } = useAuth();
+
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
+
+  const currentUserId = user?.id;
 
   const getStatusConfig = (status: PostStatus) => {
     const configs: Record<PostStatus, { color: string; icon: any; label: string; description: string }> = {
@@ -117,7 +118,7 @@ const PostStatusWorkflow: React.FC<PostStatusWorkflowProps> = ({ post, onStatusC
         break;
 
       case 'rejected':
-        if (hasPermission('editar_post_propio') && post.authorId === 3) { // Assuming current user ID is 3
+        if (hasPermission('editar_post_propio') && currentUserId && post.authorId === currentUserId) {
           actions.push({
             id: 'resubmit',
             label: 'Reenviar para Aprobación',
@@ -269,10 +270,11 @@ const PostStatusWorkflow: React.FC<PostStatusWorkflowProps> = ({ post, onStatusC
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="review-notes">
                     Notas de Revisión
                   </label>
                   <textarea
+                    id="review-notes"
                     value={reviewNotes}
                     onChange={(e) => setReviewNotes(e.target.value)}
                     rows={4}

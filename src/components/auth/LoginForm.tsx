@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { gsap } from 'gsap';
 import { Mail, Lock, Eye, EyeOff, LogIn, CircleAlert as AlertCircle } from 'lucide-react';
@@ -29,7 +30,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
     register,
     handleSubmit,
     formState: { errors },
-    setError,
     clearErrors
   } = useFormValidation<LoginFormData>({
     schema: loginSchema,
@@ -124,6 +124,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
         title: 'Error de autenticación',
         message: 'No se pudo completar el inicio de sesión social.'
       });
+      console.error('Social login failed', error);
     }
   };
 
@@ -223,14 +224,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
           transition={{ delay: 0.5 }}
           className="flex items-center justify-between"
         >
-          <label className="flex items-center space-x-2 cursor-pointer">
+          <div className="flex items-center space-x-2 cursor-pointer">
             <input
               type="checkbox"
               {...register('rememberMe')}
               className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700"
             />
             <span className="text-sm text-gray-600 dark:text-gray-400">Recordarme</span>
-          </label>
+          </div>
           
           <button
             type="button"

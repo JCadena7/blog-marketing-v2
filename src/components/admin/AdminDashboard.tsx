@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Users, MessageCircle, TrendingUp, Eye, Heart, Share2, Clock, Activity, Zap } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import ResponsiveAdminLayout from './ResponsiveAdminLayout';
 import AdminStatsGrid from './AdminStatsCards';
 import AdminQuickActions from './AdminQuickActions';
@@ -9,12 +9,23 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { useNotifications } from './AdminNotificationSystem';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import ProtectedRoute from './ProtectedRoute';
-import { mockPosts, getPendingPosts } from '../../data/mockPosts';
-import { mockComments, getPendingComments } from '../../data/mockComments';
-import { mockUsers } from '../../data/mockUsers';
+import { mockPosts } from '../../data/mockPosts';
 import { createPost, uploadPostFeaturedImage } from '../../services/postsService';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
+
+const getStatusBadgeClass = (status: (typeof mockPosts)[number]['status']) => {
+  switch (status) {
+    case 'published':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
+    case 'draft':
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
+    default:
+      return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+  }
+};
 
 const AdminDashboard: React.FC = () => {
   const { userRole, hasPermission } = usePermissions();
@@ -51,7 +62,7 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Stats Grid */}
-        <AdminStatsGrid userRole={userRole} userId={3} />
+        <AdminStatsGrid userRole={userRole ?? 'comentador'} userId={3} />
 
         {/* Quick Actions */}
         <AdminQuickActions />
@@ -91,15 +102,7 @@ const AdminDashboard: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    <span className={`flex-shrink-0 px-2 py-1 text-xs rounded-full ${
-                      post.status === 'published' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                        : post.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                        : post.status === 'draft'
-                        ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                    }`}>
+                    <span className={`flex-shrink-0 px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(post.status)}`}>
                       {post.status}
                     </span>
                   </div>
@@ -165,6 +168,8 @@ const AdminDashboard: React.FC = () => {
         onClose={() => setShowCreateWizard(false)}
         onSubmit={async (postData) => {
           try {
+            const normalizedStatus = postData.status === 'scheduled' ? 'pending' : postData.status;
+
             let newPost = await createPost({
               title: postData.title,
               content: postData.content,
@@ -172,7 +177,7 @@ const AdminDashboard: React.FC = () => {
               categoryId: postData.categoryId ? Number(postData.categoryId) : undefined,
               tags: postData.tags,
               featuredImage: postData.featuredImage,
-              status: postData.status === 'scheduled' ? 'pending' : (postData.status as 'draft' | 'pending' | 'published'),
+              status: normalizedStatus,
               featured: postData.featured,
               allowComments: postData.allowComments,
               seo: {

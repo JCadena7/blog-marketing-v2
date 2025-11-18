@@ -1,10 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { CreditCard as Edit, Trash2, Eye, FileText, CircleCheck as CheckCircle, Circle as XCircle, Clock, Plus } from 'lucide-react';
+import { CreditCard as Edit, Trash2, Eye, FileText, CircleCheck as CheckCircle } from 'lucide-react';
 import { useBreakpoint } from '../../hooks/useMediaQuery';
 import { type Post } from '../../data/mockPosts';
 import { getAllPosts, updatePostStatus, deletePost as deletePostApi, bulkAction as bulkPostsAction, createPost, uploadPostFeaturedImage } from '../../services/postsService';
 import { useNotifications } from './AdminNotificationSystem';
-import RoleBadge from './RoleBadge';
 import Button from '../ui/Button';
 import ResponsiveTable from './ResponsiveTable';
 import BulkActions from './BulkActions';
@@ -12,8 +11,99 @@ import ConfirmDialog from '../ui/ConfirmDialog';
 import { usePermissions } from '../../hooks/usePermissions';
 import CreatePostWizard from './CreatePostWizard';
 
+const getStatusBadge = (status: Post['status']) => {
+  const statusConfig = {
+    published: { color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400', text: 'Publicado' },
+    pending: { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400', text: 'Pendiente' },
+    draft: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400', text: 'Borrador' },
+    rejected: { color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400', text: 'Rechazado' }
+  };
+
+  const config = statusConfig[status] ?? statusConfig.draft;
+  return (
+    <span className={`px-2 py-1 text-xs rounded-full font-medium ${config.color}`}>
+      {config.text}
+    </span>
+  );
+};
+
+const createColumns = () => [
+  {
+    key: 'title',
+    label: 'Post',
+    render: (_value: string, row: Post) => (
+      <div className="flex items-center">
+        <img
+          src={row.featuredImage}
+          alt={row.title}
+          className="w-12 h-12 rounded-lg object-cover mr-4"
+        />
+        <div>
+          <div className="text-sm font-medium text-gray-900 dark:text-white">
+            {row.title}
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {row.category?.name || 'Sin categoría'}
+          </div>
+        </div>
+      </div>
+    ),
+    mobileRender: (_value: string, row: Post) => (
+      <div>
+        <div className="font-medium text-gray-900 dark:text-white">{row.title}</div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">{row.category?.name || 'Sin categoría'}</div>
+      </div>
+    )
+  },
+  {
+    key: 'author',
+    label: 'Autor',
+    hideOnMobile: true,
+    render: (_value: unknown, row: Post) => (
+      <div className="flex items-center">
+        <img
+          src={row.author?.avatar || 'https://ui-avatars.com/api/?name=Usuario&background=3B82F6&color=fff'}
+          alt={row.author?.name || 'Usuario'}
+          className="w-8 h-8 rounded-full mr-2"
+        />
+        <span className="text-sm text-gray-900 dark:text-white">
+          {row.author?.name || 'Autor desconocido'}
+        </span>
+      </div>
+    )
+  },
+  {
+    key: 'status',
+    label: 'Estado',
+    render: (value: string) => getStatusBadge(value as Post['status'])
+  },
+  {
+    key: 'createdAt',
+    label: 'Fecha',
+    hideOnMobile: true,
+    render: (value: string) => new Date(value).toLocaleDateString()
+  },
+  {
+    key: 'metrics',
+    label: 'Métricas',
+    hideOnMobile: true,
+    render: (_value: unknown, row: Post) => (
+      <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex items-center">
+          <Eye size={16} className="mr-1" />
+          {row.views}
+        </div>
+        <div className="flex items-center">
+          <CheckCircle size={16} className="mr-1" />
+          {row.likes}
+        </div>
+      </div>
+    )
+  }
+];
+
 const PostsTable: React.FC = () => {
-  const { hasPermission, canEditPost, canDeletePost, userRole } = usePermissions();
+  const { hasPermission, canEditPost, canDeletePost } = usePermissions();
   const breakpoint = useBreakpoint();
   const { addNotification } = useNotifications();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -28,7 +118,8 @@ const PostsTable: React.FC = () => {
 
   useEffect(() => {
     // Obtener filtro de la URL
-    const params = new URLSearchParams(window.location.search);
+    const search = typeof globalThis !== 'undefined' && globalThis.location ? globalThis.location.search : '';
+    const params = new URLSearchParams(search);
     const filter = params.get('filter');
     if (filter) {
       setStatusFilter(filter);
@@ -96,7 +187,8 @@ const PostsTable: React.FC = () => {
         message: statusMessages[newStatus as keyof typeof statusMessages] || 'Estado del post actualizado'
       });
       
-    } catch (e) {
+    } catch (error) {
+      console.error('Error actualizando estado del post', error);
       addNotification({
         type: 'error',
         title: 'Error',
@@ -151,6 +243,7 @@ const PostsTable: React.FC = () => {
       });
       
     } catch (error) {
+      console.error('Error en acción masiva de posts', error);
       addNotification({
         type: 'error',
         title: 'Error en acción masiva',
@@ -159,111 +252,28 @@ const PostsTable: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      published: { color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400', text: 'Publicado' },
-      pending: { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400', text: 'Pendiente' },
-      draft: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400', text: 'Borrador' },
-      rejected: { color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400', text: 'Rechazado' }
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig];
-    return (
-      <span className={`px-2 py-1 text-xs rounded-full font-medium ${config.color}`}>
-        {config.text}
-      </span>
-    );
-  };
-
   // Table columns configuration
-  const columns = [
-    {
-      key: 'title',
-      label: 'Post',
-      render: (value: string, row: Post) => (
-        <div className="flex items-center">
-          <img
-            src={row.featuredImage}
-            alt={row.title}
-            className="w-12 h-12 rounded-lg object-cover mr-4"
-          />
-          <div>
-            <div className="text-sm font-medium text-gray-900 dark:text-white">
-              {row.title}
-            </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              {row.category?.name || 'Sin categoría'}
-            </div>
-          </div>
-        </div>
-      ),
-      mobileRender: (value: string, row: Post) => (
-        <div>
-          <div className="font-medium text-gray-900 dark:text-white">{row.title}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">{row.category?.name || 'Sin categoría'}</div>
-        </div>
-      )
-    },
-    {
-      key: 'author',
-      label: 'Autor',
-      hideOnMobile: true,
-      render: (value: any, row: Post) => (
-        <div className="flex items-center">
-          <img
-            src={row.author?.avatar || 'https://ui-avatars.com/api/?name=Usuario&background=3B82F6&color=fff'}
-            alt={row.author?.name || 'Usuario'}
-            className="w-8 h-8 rounded-full mr-2"
-          />
-          <span className="text-sm text-gray-900 dark:text-white">
-            {row.author?.name || 'Autor desconocido'}
-          </span>
-        </div>
-      )
-    },
-    {
-      key: 'status',
-      label: 'Estado',
-      render: (value: string) => getStatusBadge(value)
-    },
-    {
-      key: 'createdAt',
-      label: 'Fecha',
-      hideOnMobile: true,
-      render: (value: string) => new Date(value).toLocaleDateString()
-    },
-    {
-      key: 'metrics',
-      label: 'Métricas',
-      hideOnMobile: true,
-      render: (value: any, row: Post) => (
-        <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-          <div className="flex items-center">
-            <Eye size={16} className="mr-1" />
-            {row.views}
-          </div>
-          <div className="flex items-center">
-            <CheckCircle size={16} className="mr-1" />
-            {row.likes}
-          </div>
-        </div>
-      )
-    }
-  ];
+  const columns = useMemo(() => createColumns(), []);
 
   // Table actions configuration
   const actions = [
     {
       label: 'Ver',
       icon: Eye,
-      onClick: (row: Post) => window.open(`/blog/${row.slug}`, '_blank'),
+      onClick: (row: Post) => {
+        if (typeof globalThis !== 'undefined' && typeof globalThis.open === 'function') {
+          globalThis.open(`/blog/${row.slug}`, '_blank');
+        }
+      },
       variant: 'secondary' as const
     },
     ...(canEditPost(3) ? [{
       label: 'Editar',
       icon: Edit,
       onClick: (row: Post) => {
-        window.location.href = `/admin/posts/${row.id}/edit`;
+        if (typeof globalThis !== 'undefined' && globalThis.location) {
+          globalThis.location.assign(`/admin/posts/${row.id}/edit`);
+        }
       },
       variant: 'primary' as const
     }] : []),
@@ -370,6 +380,8 @@ const PostsTable: React.FC = () => {
             console.log('📝 Datos del post a crear:', postData);
             
             // Crear el post con los datos del wizard
+            const normalizedStatus = postData.status === 'scheduled' ? 'pending' : postData.status;
+
             let newPost = await createPost({
               title: postData.title,
               content: postData.content,
@@ -377,7 +389,7 @@ const PostsTable: React.FC = () => {
               categoryId: postData.categoryId ? Number(postData.categoryId) : undefined,
               tags: postData.tags,
               featuredImage: postData.featuredImage,
-              status: postData.status === 'scheduled' ? 'pending' : postData.status as 'draft' | 'pending' | 'published',
+              status: normalizedStatus,
               featured: postData.featured,
               allowComments: postData.allowComments,
               seo: {

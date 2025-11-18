@@ -1,8 +1,25 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { getCurrentUser, type User, mockUsers } from '../data/mockUsers';
 import type { Role } from '../data/rolePermissions';
 import { validateToken, logout as logoutService } from '../services/authService';
+
+const getStorage = (): Storage | null =>
+  typeof globalThis !== 'undefined' && 'localStorage' in globalThis && globalThis.localStorage
+    ? globalThis.localStorage
+    : null;
+
+const getLocation = (): Location | null =>
+  typeof globalThis !== 'undefined' && 'location' in globalThis && globalThis.location
+    ? globalThis.location
+    : null;
+
+const navigateSafely = (path: string) => {
+  const location = getLocation();
+  if (location) {
+    location.href = path;
+  }
+};
 
 interface AuthContextType {
   user: User | null;
@@ -43,45 +60,79 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [demoMode, setDemoModeState] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [demoMode, setDemoModeState] = useState<boolean>(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
-  const [previewStrict, setPreviewStrictState] = useState(false);
+  const [previewStrict, setPreviewStrictState] = useState<boolean>(false);
 
-  // Define setPreviewStrict before useEffect so it's available in the provider
-  const setPreviewStrict = (enabled: boolean) => {
+  const writeStorage = useCallback((key: string, value: string) => {
+    const storage = getStorage();
+    if (storage) {
+      storage.setItem(key, value);
+    }
+  }, []);
+
+  const removeStorage = useCallback((key: string) => {
+    const storage = getStorage();
+    if (storage) {
+      storage.removeItem(key);
+    }
+  }, []);
+
+  const readStorage = useCallback((key: string) => {
+    const storage = getStorage();
+    return storage ? storage.getItem(key) : null;
+  }, []);
+
+  const setPreviewStrict = useCallback((enabled: boolean) => {
     setPreviewStrictState(enabled);
-    if (typeof window !== 'undefined') {
-      if (enabled) {
-        localStorage.setItem('preview_strict', 'true');
-      } else {
-        localStorage.removeItem('preview_strict');
+    if (enabled) {
+      writeStorage('preview_strict', 'true');
+    } else {
+      removeStorage('preview_strict');
+    }
+  }, [removeStorage, writeStorage]);
+
+  const clearAuthStorage = useCallback(() => {
+    removeStorage('auth_token');
+    removeStorage('refresh_token');
+    removeStorage('user_data');
+  }, [removeStorage]);
+
+  const loadMockUserFromStorage = useCallback(() => {
+    const storedId = readStorage('mock_user_id');
+    if (storedId) {
+      const found = mockUsers.find(u => u.id === Number(storedId));
+      if (found) {
+        return found;
       }
     }
-  };
+    return null;
+  }, [readStorage]);
+
+  const applyDemoModeFromStorage = useCallback((strictFlag: string | null) => {
+    setDemoModeState(true);
+    if (strictFlag === 'true') {
+      setPreviewStrictState(true);
+    }
+    const mockUser = loadMockUserFromStorage() || getCurrentUser();
+    setUser(mockUser);
+    setAuthToken(null);
+    setLoading(false);
+  }, [loadMockUserFromStorage]);
 
   useEffect(() => {
     // Load user from localStorage or validate existing token
     const initAuth = async () => {
       try {
-        const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-        const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user_data') : null;
-        // console.log('Stored token:', storedToken);
-        // console.log('Stored user:', storedUser);
-        const demo = typeof window !== 'undefined' ? localStorage.getItem('demo_mode') : null;
-        const strict = typeof window !== 'undefined' ? localStorage.getItem('preview_strict') : null;
+        const storedToken = readStorage('auth_token');
+        const storedUser = readStorage('user_data');
+        const demo = readStorage('demo_mode');
+        const strict = readStorage('preview_strict');
 
         // If demo mode is enabled in storage, prioritize mock user and skip token validation
         if (demo === 'true') {
-          setDemoModeState(true);
-          if (strict === 'true') setPreviewStrictState(true);
-
-          const storedId = typeof window !== 'undefined' ? localStorage.getItem('mock_user_id') : null;
-          const found = storedId ? mockUsers.find(u => u.id === Number(storedId)) : getCurrentUser();
-
-          setUser(found || getCurrentUser());
-          setAuthToken(null); // demo mode does not use a real token
-          setLoading(false);
+          applyDemoModeFromStorage(strict);
           return;
         }
 
@@ -93,11 +144,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setAuthToken(storedToken);
           } else {
             // Token invalid, clear storage
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('auth_token');
-              localStorage.removeItem('refresh_token');
-              localStorage.removeItem('user_data');
-            }
+            clearAuthStorage();
             // No user if token is invalid
             setUser(null);
             setAuthToken(null);
@@ -105,12 +152,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           // No stored token/user - check if we should load mock user for development
           // Only load mock user if explicitly set via mock_user_id (for testing/preview)
-          const storedId = typeof window !== 'undefined' ? localStorage.getItem('mock_user_id') : null;
-          if (storedId) {
-            const found = mockUsers.find(u => u.id === Number(storedId));
-            if (found) {
-              setUser(found);
-            }
+          const mockUser = loadMockUserFromStorage();
+          if (mockUser) {
+            setUser(mockUser);
           }
           // Otherwise, leave user as null (not authenticated)
         }
@@ -122,155 +166,125 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initAuth();
-  }, []);
+  }, [applyDemoModeFromStorage, clearAuthStorage, loadMockUserFromStorage, readStorage]);
 
-  const login = async (userData: User, token: string, isNewUser: boolean = false) => {
+  const login = useCallback(async (userData: User, token: string, isNewUser: boolean = false) => {
     try {
-      // Save to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('auth_token', token);
-        localStorage.setItem('user_data', JSON.stringify(userData));
-        console.log('User logged in:', userData);
-        // Clear demo mode when doing real login
-        localStorage.removeItem('demo_mode');
-        localStorage.removeItem('mock_user_id');
-      }
+      writeStorage('auth_token', token);
+      writeStorage('user_data', JSON.stringify(userData));
+      removeStorage('demo_mode');
+      removeStorage('mock_user_id');
 
-      // Update state
       setUser(userData);
       setAuthToken(token);
       setDemoModeState(false);
 
-      // Redirect based on user type
-      const redirectTo = isNewUser 
-        ? '/admin/dashboard?new=true' 
-        : '/admin/dashboard';
+      const redirectTo = isNewUser ? '/admin/dashboard?new=true' : '/admin/dashboard';
 
-      // Small delay for animations to complete
       setTimeout(() => {
-        window.location.href = redirectTo;
+        navigateSafely(redirectTo);
       }, 300);
-
     } catch (error) {
       console.error('Login error:', error);
       throw error;
     }
-  };
+  }, [removeStorage, writeStorage]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     setLoading(true);
 
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const token = readStorage('auth_token');
       await logoutService(token);
     } catch (error) {
       console.warn('Error calling logout API:', error);
     }
 
-    // Clear state
     setUser(null);
     setAuthToken(null);
 
-    // Clear localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user_data');
-      localStorage.removeItem('mock_user_id');
-      localStorage.removeItem('demo_mode');
-      localStorage.removeItem('onboarding_completed');
-    }
+    clearAuthStorage();
+    removeStorage('mock_user_id');
+    removeStorage('demo_mode');
+    removeStorage('onboarding_completed');
 
-    // Redirect to auth page
     setTimeout(() => {
-      window.location.href = '/auth';
+      navigateSafely('/auth');
       setLoading(false);
     }, 300);
-  };
+  }, [clearAuthStorage, readStorage, removeStorage]);
 
   // Dev helpers: allow switching between mock users/roles
-  const setMockUserByRole = (role: Role) => {
+  const setMockUserByRole = useCallback((role: Role) => {
     const found = mockUsers.find(u => u.role === role);
     if (found) {
       setUser(found);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('mock_user_id', String(found.id));
-      }
+      writeStorage('mock_user_id', String(found.id));
     }
-  };
+  }, [writeStorage]);
 
-  const setMockUserById = (id: number) => {
+  const setMockUserById = useCallback((id: number) => {
     const found = mockUsers.find(u => u.id === id);
     if (found) {
       setUser(found);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('mock_user_id', String(found.id));
-      }
+      writeStorage('mock_user_id', String(found.id));
     }
-  };
+  }, [writeStorage]);
 
-  /**
-   * Toggle demo mode.
-   * - When enabling: persist demo flag, load mock user (from mock_user_id if available, otherwise getCurrentUser()) and clear real auth token.
-   * - When disabling: remove demo flag and try to rehydrate from a stored auth token (validate it). If none, clear user.
-   */
-  const setDemoMode = (enabled: boolean) => {
+  const enableDemoMode = useCallback(() => {
+    setDemoModeState(true);
+    writeStorage('demo_mode', 'true');
+    const mockUser = loadMockUserFromStorage() || getCurrentUser();
+    setUser(mockUser);
+    setAuthToken(null);
+  }, [loadMockUserFromStorage, writeStorage]);
+
+  const disableDemoMode = useCallback(() => {
+    setDemoModeState(false);
+    removeStorage('demo_mode');
+
+    const storedToken = readStorage('auth_token');
+    if (storedToken) {
+      const validatedUser = validateToken(storedToken);
+      if (validatedUser) {
+        setUser(validatedUser);
+        setAuthToken(storedToken);
+        return;
+      }
+      clearAuthStorage();
+    }
+
+    setUser(null);
+    setAuthToken(null);
+  }, [clearAuthStorage, readStorage, removeStorage]);
+
+  const setDemoMode = useCallback((enabled: boolean) => {
     if (enabled) {
-      setDemoModeState(true);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('demo_mode', 'true');
-      }
-
-      const storedId = typeof window !== 'undefined' ? localStorage.getItem('mock_user_id') : null;
-      const found = storedId ? mockUsers.find(u => u.id === Number(storedId)) : getCurrentUser();
-
-      setUser(found || getCurrentUser());
-      setAuthToken(null); // demo mode doesn't rely on a real token
-    } else {
-      setDemoModeState(false);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('demo_mode');
-      }
-
-      // Try to rehydrate from a stored token if the user had previously logged in
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('auth_token');
-        if (storedToken) {
-          const validatedUser = validateToken(storedToken);
-          if (validatedUser) {
-            setUser(validatedUser);
-            setAuthToken(storedToken);
-            return;
-          }
-          // invalid token -> cleanup
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user_data');
-        }
-      }
-
-      // No token found -> clear user
-      setUser(null);
-      setAuthToken(null);
+      enableDemoMode();
+      return;
     }
-  };
+    disableDemoMode();
+  }, [disableDemoMode, enableDemoMode]);
 
   const isAuthenticated = !!user && (!!authToken || demoMode);
+
+  const contextValue = useMemo(() => ({
+    user,
+    login,
+    logout,
+    loading,
+    authToken,
+    isAuthenticated,
+    setMockUserByRole,
+    setMockUserById,
+    demoMode,
+    setDemoMode,
+    previewStrict,
+    setPreviewStrict
+  }), [authToken, demoMode, isAuthenticated, loading, login, logout, previewStrict, setDemoMode, setMockUserById, setMockUserByRole, setPreviewStrict, user]);
   
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      logout, 
-      loading, 
-      authToken,
-      isAuthenticated,
-      setMockUserByRole, 
-      setMockUserById, 
-      demoMode, 
-      setDemoMode,
-      previewStrict,
-      setPreviewStrict
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

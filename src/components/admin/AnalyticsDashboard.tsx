@@ -7,12 +7,8 @@ import {
   MessageCircle, 
   Eye, 
   Heart, 
-  Share2,
-  Calendar,
   Download,
-  Filter,
   BarChart3,
-  PieChart,
   Activity,
   Target
 } from 'lucide-react';
@@ -36,6 +32,7 @@ import {
 import { usePermissions } from '../../hooks/usePermissions';
 import { getAnalyticsData } from '../../services/analyticsService';
 import type { AnalyticsData } from '../../data/mockAnalytics';
+import type { Role } from '../../data/rolePermissions';
 
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -55,7 +52,9 @@ const AnalyticsDashboard: React.FC = () => {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      const data = await getAnalyticsData(userRole, timeRange);
+      const effectiveRole: Role = userRole ?? 'comentador';
+
+      const data = await getAnalyticsData(effectiveRole, timeRange);
       setAnalyticsData(data);
     } finally {
       setLoading(false);
@@ -352,7 +351,7 @@ const ContentTab: React.FC<{ analyticsData: AnalyticsData | null; loading: boole
                   dataKey="value"
                 >
                   {analyticsData.content.postsByCategory.map((entry: AnalyticsData['content']['postsByCategory'][number], index: number) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </RechartsPieChart>
                 <Legend />
@@ -660,11 +659,14 @@ const PerformanceTab: React.FC<{ analyticsData: AnalyticsData | null; loading: b
   );
 };
 
+const METRIC_SKELETON_IDS = ['metric-1', 'metric-2', 'metric-3', 'metric-4'];
+const CHART_SKELETON_IDS = ['chart-1', 'chart-2'];
+
 const AnalyticsLoadingSkeleton: React.FC = () => (
   <div className="space-y-6">
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <Card key={index} className="animate-pulse">
+      {METRIC_SKELETON_IDS.map((id) => (
+        <Card key={id} className="animate-pulse">
           <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3"></div>
           <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
           <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
@@ -672,8 +674,8 @@ const AnalyticsLoadingSkeleton: React.FC = () => (
       ))}
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {Array.from({ length: 2 }).map((_, index) => (
-        <Card key={index} className="animate-pulse">
+      {CHART_SKELETON_IDS.map((id) => (
+        <Card key={id} className="animate-pulse">
           <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
           <div className="h-80 bg-gray-200 dark:bg-gray-700 rounded"></div>
         </Card>

@@ -5,18 +5,11 @@ import {
   FileText, 
   MessageCircle, 
   Users, 
-  Edit, 
-  Trash2,
   CheckCircle,
   XCircle,
-  Clock,
-  Eye,
-  Heart,
-  Share2,
-  Calendar,
-  Filter,
   RefreshCw
 } from 'lucide-react';
+
 import { usePermissions } from '../../hooks/usePermissions';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -50,6 +43,12 @@ const AdminActivityFeed: React.FC = () => {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(false);
+
+  const navigateSafely = (path: string) => {
+    if (typeof globalThis !== 'undefined' && 'location' in globalThis && globalThis.location) {
+      globalThis.location.assign(path);
+    }
+  };
 
   useEffect(() => {
     loadActivities();
@@ -263,11 +262,11 @@ const AdminActivityFeed: React.FC = () => {
                 onClick={() => {
                   // Navigate to relevant section based on activity type
                   if (activity.metadata?.postId) {
-                    window.location.href = `/admin/posts/${activity.metadata.postId}/edit`;
+                    navigateSafely(`/admin/posts/${activity.metadata.postId}/edit`);
                   } else if (activity.metadata?.commentId) {
-                    window.location.href = `/admin/comentarios?highlight=${activity.metadata.commentId}`;
+                    navigateSafely(`/admin/comentarios?highlight=${activity.metadata.commentId}`);
                   } else if (activity.metadata?.userId) {
-                    window.location.href = `/admin/usuarios/${activity.metadata.userId}`;
+                    navigateSafely(`/admin/usuarios/${activity.metadata.userId}`);
                   }
                 }}
               >

@@ -14,7 +14,7 @@ interface MenuItem {
 }
 
 const AdminSidebar: React.FC = () => {
-  const { hasAnyPermission, canAccessSection } = usePermissions();
+  const { hasAnyPermission } = usePermissions();
   
   const pendingPostsCount = getPendingPosts().length;
   const pendingCommentsCount = getPendingComments().length;
@@ -90,8 +90,8 @@ const AdminSidebar: React.FC = () => {
   // Avoid accessing window during SSR
   const [currentPath, setCurrentPath] = useState<string>('/');
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCurrentPath(window.location.pathname);
+    if (typeof globalThis !== 'undefined' && 'location' in globalThis && globalThis.location) {
+      setCurrentPath(globalThis.location.pathname);
     }
   }, []);
 

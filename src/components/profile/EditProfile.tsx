@@ -3,13 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Save, ArrowLeft, TriangleAlert as AlertTriangle, Clock, User, Shield, Settings, Globe, Lock, CircleCheck as CheckCircle } from 'lucide-react';
+import { Save, ArrowLeft, TriangleAlert as AlertTriangle, Clock, User, Shield, Settings, Globe, Lock } from 'lucide-react';
 import { getProfile, updateProfile, checkUsernameAvailability, checkEmailAvailability } from '../../services/profileService';
 import { type UserProfile } from '../../data/mockUserProfiles';
 import { useNotifications } from '../admin/AdminNotificationSystem';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
-import Input from '../ui/Input';
+
 import GeneralProfileForm from './forms/GeneralProfileForm';
 import SecurityProfileForm from './forms/SecurityProfileForm';
 import PreferencesProfileForm from './forms/PreferencesProfileForm';
@@ -25,48 +25,48 @@ const profileSchema = z.object({
   firstName: z.string()
     .min(2, 'Nombre debe tener al menos 2 caracteres')
     .max(50, 'Nombre no puede exceder 50 caracteres')
-    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'Solo letras y espacios permitidos'),
-  
+    .regex(/^[-\p{L}\s]+$/u, 'Solo letras y espacios permitidos'),
+
   lastName: z.string()
     .min(2, 'Apellido debe tener al menos 2 caracteres')
     .max(50, 'Apellido no puede exceder 50 caracteres')
-    .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'Solo letras y espacios permitidos'),
-  
+    .regex(/^[-\p{L}\s]+$/u, 'Solo letras y espacios permitidos'),
+
   username: z.string()
     .min(3, 'Username debe tener al menos 3 caracteres')
     .max(20, 'Username no puede exceder 20 caracteres')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Solo letras, números y guiones bajos'),
-  
+    .regex(/^\w+$/, 'Solo letras, números y guiones bajos'),
+
   email: z.string().email('Email inválido'),
-  
+
   bio: z.string()
     .max(500, 'Bio no puede exceder 500 caracteres')
     .transform(val => val.trim())
     .optional(),
-  
+
   website: z.string()
     .url('URL inválida')
     .optional()
     .or(z.literal('')),
-  
+
   location: z.string()
     .max(100, 'Ubicación muy larga')
     .optional(),
-  
+
   phone: z.string()
     .regex(/^\+?[1-9]\d{1,14}$/, 'Formato de teléfono inválido')
     .optional()
     .or(z.literal('')),
-  
+
   birthDate: z.string().optional(),
-  
+
   socialLinks: z.object({
     twitter: z.string().optional(),
     linkedin: z.string().optional(),
     github: z.string().optional(),
     instagram: z.string().optional()
   }),
-  
+
   preferences: z.object({
     emailNotifications: z.boolean(),
     pushNotifications: z.boolean(),
@@ -156,7 +156,7 @@ const EditProfile: React.FC<EditProfileProps> = ({ userId }) => {
 
     try {
       setSaving(true);
-      
+
       // Validate unique username and email
       if (data.username !== user.username) {
         const usernameCheck = await checkUsernameAvailability(data.username, user.username);
@@ -165,7 +165,7 @@ const EditProfile: React.FC<EditProfileProps> = ({ userId }) => {
           return;
         }
       }
-      
+
       if (data.email !== user.email) {
         const emailCheck = await checkEmailAvailability(data.email, user.email);
         if (!emailCheck.available) {
@@ -179,14 +179,14 @@ const EditProfile: React.FC<EditProfileProps> = ({ userId }) => {
         setUser(updatedUser);
         form.reset(data);
         setHasUnsavedChanges(false);
-        
+
         addNotification({
           type: 'success',
           title: 'Perfil actualizado',
           message: 'Tus cambios se han guardado correctamente'
         });
       }
-      
+
     } catch (error: any) {
       addNotification({
         type: 'error',
@@ -200,7 +200,9 @@ const EditProfile: React.FC<EditProfileProps> = ({ userId }) => {
 
   const handleReset = () => {
     if (hasUnsavedChanges) {
-      if (confirm('¿Estás seguro de que quieres descartar los cambios?')) {
+      const canConfirm = typeof globalThis !== 'undefined' && 'confirm' in globalThis && typeof globalThis.confirm === 'function';
+      const shouldReset = canConfirm ? globalThis.confirm('¿Estás seguro de que quieres descartar los cambios?') : true;
+      if (shouldReset) {
         form.reset();
         setHasUnsavedChanges(false);
       }

@@ -38,17 +38,17 @@ const SimpleMarkdownEditor: React.FC<SimpleMarkdownEditorProps> = ({
 
   const renderPreview = () => {
     let html = content
-      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold mt-4 mb-2">$1<\/h3>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-5 mb-3">$1<\/h2>')
-      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-6 mb-4">$1<\/h1>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1<\/strong>')
-      .replace(/\*(.*?)\*/g, '<em class="italic">$1<\/em>')
-      .replace(/`(.*?)`/g, '<code class="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm">$1<\/code>')
-      .replace(/^> (.*$)/gim, '<blockquote class="border-l-4 border-primary-500 pl-4 italic my-2 text-gray-700 dark:text-gray-300">$1<\/blockquote>')
-      .replace(/^- (.*$)/gim, '<li class="ml-4">• $1<\/li>')
-      .replace(/^\d+\. (.*$)/gim, '<li class="ml-4">$1<\/li>')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary-600 dark:text-primary-400 hover:underline" target="_blank" rel="noopener noreferrer">$1<\/a>')
-      .replace(/\n/g, '<br>');
+      .replaceAll(/^### (.*$)/gim, '<h3 class="text-lg font-bold mt-4 mb-2">$1</h3>')
+      .replaceAll(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-5 mb-3">$1</h2>')
+      .replaceAll(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-6 mb-4">$1</h1>')
+      .replaceAll(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
+      .replaceAll(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+      .replaceAll(/`(.*?)`/g, '<code class="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm">$1</code>')
+      .replaceAll(/^> (.*$)/gim, '<blockquote class="border-l-4 border-primary-500 pl-4 italic my-2 text-gray-700 dark:text-gray-300">$1</blockquote>')
+      .replaceAll(/^- (.*$)/gim, '<li class="ml-4">• $1</li>')
+      .replaceAll(/^\d+\. (.*$)/gim, '<li class="ml-4">$1</li>')
+      .replaceAll(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary-600 dark:text-primary-400 hover:underline" target="_blank" rel="noopener noreferrer">$1</a>')
+      .replaceAll(/\n/g, '<br>');
 
     return { __html: html };
   };

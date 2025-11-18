@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, CreditCard as Edit2, Trash2, Search, Palette, Eye, EyeOff, FileText, Calendar, User } from 'lucide-react';
+import { Plus, CreditCard as Edit2, Trash2, Search, Eye, EyeOff, FileText, Calendar } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 import { type Category } from '../../data/mockCategories';
 import { 
@@ -35,6 +35,13 @@ const CategoriesManagement: React.FC = () => {
     try {
       const data = await getAllCategories();
       setCategories(data);
+    } catch (error) {
+      console.error('Error cargando categorías:', error);
+      addNotification({
+        type: 'error',
+        title: 'Error al cargar',
+        message: 'No se pudieron cargar las categorías.'
+      });
     } finally {
       setLoading(false);
     }
@@ -66,6 +73,7 @@ const CategoriesManagement: React.FC = () => {
     try {
       setDeleteLoading(true);
       const success = await deleteCategoryApi(confirmDelete.id);
+
       if (success) {
         setCategories(prev => prev.filter(cat => cat.id !== confirmDelete.id));
         addNotification({
@@ -80,6 +88,13 @@ const CategoriesManagement: React.FC = () => {
           message: 'No se puede eliminar una categoría que tiene posts asociados.'
         });
       }
+    } catch (error) {
+      console.error('Error al eliminar categoría:', error);
+      addNotification({
+        type: 'error',
+        title: 'Error al eliminar',
+        message: 'No se pudo eliminar la categoría.'
+      });
     } finally {
       setDeleteLoading(false);
       setConfirmDelete({ open: false, id: null });
@@ -104,6 +119,7 @@ const CategoriesManagement: React.FC = () => {
         });
       }
     } catch (error) {
+      console.error('Error cambiando estado de categoría:', error);
       addNotification({
         type: 'error',
         title: 'Error',
@@ -119,6 +135,7 @@ const CategoriesManagement: React.FC = () => {
         setCategories(prev => prev.map(cat => 
           cat.id === selectedCategory.id ? (updated ?? cat) : cat
         ));
+
         addNotification({
           type: 'success',
           title: 'Categoría actualizada',
@@ -136,6 +153,7 @@ const CategoriesManagement: React.FC = () => {
       setIsModalOpen(false);
       setSelectedCategory(null);
     } catch (error) {
+      console.error('Error guardando categoría:', error);
       addNotification({
         type: 'error',
         title: 'Error al guardar',
@@ -183,7 +201,7 @@ const CategoriesManagement: React.FC = () => {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {Array.from({ length: 8 }).map((_, index) => (
-            <Card key={index} className="animate-pulse">
+            <Card key={`category-skeleton-${index}`} className="animate-pulse">
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3"></div>
               <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
               <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
@@ -434,10 +452,11 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="category-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Descripción
             </label>
             <textarea
+              id="category-description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
@@ -446,12 +465,12 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <fieldset className="space-y-2">
+            <legend className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Color
-            </label>
+            </legend>
             <div className="flex items-center space-x-3">
-              <div className="flex space-x-2">
+              <div className="flex space-x-2" role="group" aria-label="Opciones rápidas de color">
                 {colorOptions.map((color) => (
                   <button
                     key={color}
@@ -463,17 +482,23 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                         : 'border-gray-200 hover:scale-105'
                     }`}
                     style={{ backgroundColor: color }}
+                    aria-label={`Seleccionar color ${color}`}
+                    title={`Seleccionar color ${color}`}
                   />
                 ))}
               </div>
+              <label htmlFor="custom-color" className="sr-only">
+                Seleccionar color personalizado
+              </label>
               <input
+                id="custom-color"
                 type="color"
                 value={formData.color}
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                 className="w-8 h-8 rounded border border-gray-300"
               />
             </div>
-          </div>
+          </fieldset>
 
           <div className="flex items-center">
             <input

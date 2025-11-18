@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, X, Trash2, Edit, Archive, Eye, EyeOff } from 'lucide-react';
+import { Check, X, Trash2, Archive } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -122,7 +122,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
               <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                {selectedItems.length} elemento{selectedItems.length !== 1 ? 's' : ''} seleccionado{selectedItems.length !== 1 ? 's' : ''}
+                {selectedItems.length} elemento{selectedItems.length === 1 ? '' : 's'} seleccionado{selectedItems.length === 1 ? '' : 's'}
               </span>
               <button
                 onClick={onClearSelection}

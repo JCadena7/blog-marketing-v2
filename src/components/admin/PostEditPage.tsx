@@ -10,10 +10,15 @@ import { getAllPosts, updatePostStatus, updatePost } from '../../services/postsS
 import { usePermissions } from '../../hooks/usePermissions';
 import { AuthContext } from '../../contexts/AuthContext';
 
+const getSafeLocation = () => {
+  if (typeof globalThis === 'undefined') return null;
+  if (!('location' in globalThis) || !globalThis.location) return null;
+  return globalThis.location;
+};
+
 const PostEditPage: React.FC = () => {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const { addNotification } = useNotifications();
   const { canEditPost } = usePermissions();
 
@@ -28,10 +33,15 @@ const PostEditPage: React.FC = () => {
 
   const loadPost = async () => {
     try {
-      // Get post ID from URL
-      const urlParts = window.location.pathname.split('/');
-      const postId = parseInt(urlParts[urlParts.indexOf('posts') + 1]);
-      
+      const location = getSafeLocation();
+      if (!location) {
+        throw new Error('No se pudo acceder a location');
+      }
+
+      const urlParts = location.pathname.split('/');
+      const postIdRaw = urlParts[urlParts.indexOf('posts') + 1];
+      const postId = Number.parseInt(postIdRaw ?? '', 10);
+
       const posts = await getAllPosts();
       const foundPost = posts.find(p => p.id === postId);
       
@@ -41,7 +51,7 @@ const PostEditPage: React.FC = () => {
           title: 'Post no encontrado',
           message: 'El post que intentas editar no existe.'
         });
-        window.location.href = '/admin/posts';
+        location.assign('/admin/posts');
         return;
       }
 
@@ -51,12 +61,13 @@ const PostEditPage: React.FC = () => {
           title: 'Sin permisos',
           message: 'No tienes permisos para editar este post.'
         });
-        window.location.href = '/admin/posts';
+        location.assign('/admin/posts');
         return;
       }
 
       setPost(foundPost);
     } catch (error) {
+      console.error('Error al cargar post:', error);
       addNotification({
         type: 'error',
         title: 'Error al cargar',
@@ -71,8 +82,6 @@ const PostEditPage: React.FC = () => {
     if (!post) return;
 
     try {
-      setSaving(true);
-      
       console.log(' Guardando cambios del post:', postData);
       
       // Actualizar el post usando el servicio
@@ -107,8 +116,6 @@ const PostEditPage: React.FC = () => {
         title: 'Error al guardar',
         message: 'No se pudieron guardar los cambios. Intenta nuevamente.'
       });
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -143,6 +150,7 @@ const PostEditPage: React.FC = () => {
       });
 
     } catch (error) {
+      console.error('Error al actualizar estado del post:', error);
       addNotification({
         type: 'error',
         title: 'Error',
@@ -152,7 +160,10 @@ const PostEditPage: React.FC = () => {
   };
 
   const handleCancel = () => {
-    window.location.href = '/admin/posts';
+    const location = getSafeLocation();
+    if (location) {
+      location.assign('/admin/posts');
+    }
   };
 
   if (loading) {
@@ -176,7 +187,7 @@ const PostEditPage: React.FC = () => {
             El post que intentas editar no existe o no tienes permisos para acceder a él.
           </p>
           <button
-            onClick={() => window.location.href = '/admin/posts'}
+            onClick={handleCancel}
             className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
           >
             Volver a Posts
