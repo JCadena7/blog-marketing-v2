@@ -9,6 +9,7 @@ import ResponsiveTable from './ResponsiveTable';
 import BulkActions from './BulkActions';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import { usePermissions } from '../../hooks/usePermissions';
+import useAuth from '../../hooks/useAuth';
 import CreatePostWizard from './CreatePostWizard';
 
 const getStatusBadge = (status: Post['status']) => {
@@ -104,6 +105,7 @@ const createColumns = () => [
 
 const PostsTable: React.FC = () => {
   const { hasPermission, canEditPost, canDeletePost } = usePermissions();
+  const { user } = useAuth();
   const breakpoint = useBreakpoint();
   const { addNotification } = useNotifications();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -147,9 +149,9 @@ const PostsTable: React.FC = () => {
     // Filter by user permissions
     if (hasPermission('editar_post_cualquiera')) {
       // Can see all posts
-    } else if (hasPermission('editar_post_propio')) {
-      // Only own posts (assuming userId = 3 for example)
-      filtered = filtered.filter(post => post.authorId === 3);
+    } else if (hasPermission('editar_post_propio') && user?.id) {
+      // Only own posts
+      filtered = filtered.filter(post => post.authorId === user.id);
     } else {
       filtered = [];
     }
@@ -161,7 +163,7 @@ const PostsTable: React.FC = () => {
     }
 
     return filtered;
-  }, [posts, hasPermission, statusFilter]);
+  }, [posts, hasPermission, statusFilter, user?.id]);
 
   const handleStatusChange = async (postId: number, newStatus: string) => {
     try {
@@ -267,10 +269,11 @@ const PostsTable: React.FC = () => {
       },
       variant: 'secondary' as const
     },
-    ...(canEditPost(3) ? [{
+    ...((hasPermission('editar_post_cualquiera') || hasPermission('editar_post_propio')) ? [{
       label: 'Editar',
       icon: Edit,
       onClick: (row: Post) => {
+        if (!canEditPost(row.authorId)) return;
         if (typeof globalThis !== 'undefined' && globalThis.location) {
           globalThis.location.assign(`/admin/posts/${row.id}/edit`);
         }
@@ -283,10 +286,13 @@ const PostsTable: React.FC = () => {
       onClick: (row: Post) => handleStatusChange(row.id, 'published'),
       variant: 'primary' as const
     }] : []),
-    ...(canDeletePost(3) ? [{
+    ...(canDeletePost(user?.id ?? -1) ? [{
       label: 'Eliminar',
       icon: Trash2,
-      onClick: (row: Post) => handleDelete(row.id),
+      onClick: (row: Post) => {
+        if (!canDeletePost(row.authorId)) return;
+        handleDelete(row.id);
+      },
       variant: 'danger' as const
     }] : [])
   ];
