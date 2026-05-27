@@ -4,6 +4,9 @@ dist/
 # generated types
 .astro/
 
+# documentation
+src/Documentacion/
+
 # dependencies
 node_modules/
 
