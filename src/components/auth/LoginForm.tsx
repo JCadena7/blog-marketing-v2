@@ -269,7 +269,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister, onForgotPassw
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
         >
-          <SocialButtons mode="login" onSuccess={handleSocialSuccess} />
+          {/* <SocialButtons mode="login" onSuccess={handleSocialSuccess} /> */}
         </motion.div>
 
         <motion.div

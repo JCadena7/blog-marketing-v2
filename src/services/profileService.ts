@@ -17,6 +17,83 @@ type UploadResponse = {
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
+const defaultProfileStats = {
+  postsCreated: 0,
+  postsPublished: 0,
+  totalViews: 0,
+  totalLikes: 0,
+  totalComments: 0,
+  followers: 0,
+  following: 0,
+  likesReceived: 0,
+  commentsReceived: 0,
+  profileViews: 0
+};
+
+const defaultProfilePreferences = {
+  emailNotifications: true,
+  pushNotifications: false,
+  marketingEmails: false,
+  theme: 'light' as const,
+  language: 'es',
+  timezone: 'America/Bogota',
+  defaultEditor: 'hybrid' as const,
+  autoSave: true,
+  showSocialLinks: true,
+  showEmail: false,
+  profileVisibility: 'public' as const,
+  allowDirectMessages: 'everyone' as const,
+  showOnlineStatus: true,
+  allowAnalytics: true,
+  indexPosts: true,
+  allowComments: true,
+  moderateComments: false
+};
+
+export function normalizeProfileData(user: any): UserProfile {
+  const firstName = user?.firstName ?? user?.first_name ?? '';
+  const lastName = user?.lastName ?? user?.last_name ?? '';
+
+  return {
+    id: user?.id ?? 0,
+    username: user?.username || `user${user?.id ?? ''}`,
+    email: user?.email ?? '',
+    firstName,
+    lastName,
+    avatar:
+      user?.avatar ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(`${firstName} ${lastName}`.trim() || 'User')}&background=3B82F6&color=fff`,
+    coverImage: user?.coverImage ?? user?.cover_image ?? '',
+    bio: user?.bio ?? '',
+    location: user?.location ?? '',
+    website: user?.website ?? '',
+    phone: user?.phone ?? '',
+    birthDate: user?.birthDate ?? user?.birth_date ?? '',
+    role: user?.rol?.nombre || user?.role || 'autor',
+    status: user?.status || 'active',
+    isVerified: user?.isVerified ?? user?.is_verified ?? false,
+    onlineStatus: user?.onlineStatus ?? 'offline',
+    lastLogin: user?.lastLogin ?? user?.last_login ?? new Date().toISOString(),
+    createdAt: user?.createdAt ?? user?.created_at ?? new Date().toISOString(),
+    updatedAt: user?.updatedAt ?? user?.updated_at ?? new Date().toISOString(),
+    socialLinks: {
+      twitter: user?.socialLinks?.twitter ?? '',
+      linkedin: user?.socialLinks?.linkedin ?? '',
+      github: user?.socialLinks?.github ?? '',
+      instagram: user?.socialLinks?.instagram ?? ''
+    },
+    preferences: {
+      ...defaultProfilePreferences,
+      ...(user?.preferences ?? {})
+    },
+    stats: {
+      ...defaultProfileStats,
+      ...(user?.stats ?? {})
+    },
+    activity: user?.activity ?? []
+  };
+}
+
 // ==================== MOCK DATA LAYER ====================
 
 async function getProfileMock(userId: number): Promise<UserProfile | null> {
@@ -39,66 +116,7 @@ async function getProfileApi(userId: number): Promise<UserProfile | null> {
       (API_CONFIG.ENDPOINTS.USER_BY_ID as (id: number) => string)(userId)
     );
     
-    // Transformar respuesta del backend al formato UserProfile del frontend
-    const profile: UserProfile = {
-      id: user.id,
-      username: user.username || `user${user.id}`,
-      email: user.email,
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName || 'User')}&background=3B82F6&color=fff`,
-      coverImage: user.coverImage || '',
-      bio: user.bio || '',
-      location: user.location || '',
-      website: user.website || '',
-      socialLinks: user.socialLinks || {
-        twitter: '',
-        linkedin: '',
-        github: '',
-        instagram: ''
-      },
-      role: user.rol?.nombre || 'autor',
-      status: user.status || 'active',
-      isVerified: user.isVerified || false,
-      onlineStatus: user.onlineStatus || 'offline',
-      lastLogin: user.lastLogin || new Date().toISOString(),
-      createdAt: user.created_at || new Date().toISOString(),
-      updatedAt: user.updated_at || new Date().toISOString(),
-      stats: {
-        postsCreated: 0,
-        postsPublished: 0,
-        totalViews: 0,
-        totalLikes: 0,
-        totalComments: 0,
-        followers: 0,
-        following: 0,
-        likesReceived: 0,
-        commentsReceived: 0,
-        profileViews: 0
-      },
-      activity: [],
-      preferences: {
-        emailNotifications: true,
-        pushNotifications: false,
-        marketingEmails: false,
-        theme: 'light',
-        language: 'es',
-        timezone: 'America/Bogota',
-        defaultEditor: 'hybrid',
-        autoSave: true,
-        showSocialLinks: true,
-        showEmail: false,
-        profileVisibility: 'public',
-        allowDirectMessages: 'everyone',
-        showOnlineStatus: true,
-        allowAnalytics: true,
-        indexPosts: true,
-        allowComments: true,
-        moderateComments: false
-      }
-    };
-    
-    return profile;
+    return normalizeProfileData(user);
   } catch (error) {
     console.error('Error fetching profile from API:', error);
     return null;

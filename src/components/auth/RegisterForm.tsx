@@ -409,7 +409,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.0 }}
         >
-          <SocialButtons mode="register" onSuccess={handleSocialSuccess} />
+          {/* <SocialButtons mode="register" onSuccess={handleSocialSuccess} /> */}
         </motion.div>
 
         <motion.div
